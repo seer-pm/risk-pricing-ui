@@ -25,6 +25,7 @@ const DesktopNavbar: React.FC<IDesktopNavbar> = ({ toggleIsHelpOpen }) => {
         <div className="flex items-center">
           <EmailUpdates />
           <LightButton
+            ariaLabel="Help"
             text=""
             onPress={toggleIsHelpOpen}
             icon={<HelpIcon className="size-4" />}

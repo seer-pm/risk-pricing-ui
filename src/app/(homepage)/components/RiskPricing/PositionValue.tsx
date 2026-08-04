@@ -11,7 +11,7 @@ import { useRiskTokenPositionValue } from "@/hooks/useRiskTokenPositionValue";
 
 import InfoIcon from "@/assets/svg/info.svg";
 
-import { formatValue, isUndefined } from "@/utils";
+import { formatUsd, formatValue, isUndefined } from "@/utils";
 
 import { advancedUserGuide } from "@/consts/markets";
 
@@ -51,7 +51,7 @@ const PositionValue: React.FC<IPositionValue> = ({
   const displayTotal = useMemo(() => {
     if (totalValue > 0) {
       if (totalValue < 0.01) {
-        return "< 0.01";
+        return "<0.01";
       } else {
         return totalValue;
       }
@@ -65,12 +65,8 @@ const PositionValue: React.FC<IPositionValue> = ({
 
   return (
     <div className="flex flex-col gap-2">
-      <h3 className="text-klerosUIComponentsPrimaryText">
-        {isResolved ? (
-          <strong>Position to redeem:</strong>
-        ) : (
-          "Details of your position:"
-        )}
+      <h3 className="text-klerosUIComponentsPrimaryText text-sm font-semibold">
+        {isResolved ? "Position to redeem:" : "Details of your position:"}
       </h3>
       <div
         className={clsx(
@@ -84,9 +80,9 @@ const PositionValue: React.FC<IPositionValue> = ({
               <span className="font-bold">
                 {formatValue(balance ?? 0n, 18)} {symbol} &nbsp;
               </span>
-              ~{totalValue.toFixed(2)}$ &nbsp;
+              ~{formatUsd(totalValue)} &nbsp;
               <span className="text-klerosUIComponentsSecondaryText text-xs">
-                ({price.toFixed(2)}$ per {symbol})
+                ({formatUsd(price)} per {symbol})
               </span>
             </p>
             <span className="text-klerosUIComponentsPrimaryText justify-center text-sm max-md:hidden">
@@ -114,7 +110,7 @@ const PositionValue: React.FC<IPositionValue> = ({
             onClick={(e) => e.stopPropagation()}
           >
             Total:
-            <span className="font-bold"> {totalValue.toFixed(2)}$ </span>
+            <span className="font-bold"> {formatUsd(totalValue)} </span>
             <InfoIcon className="mb-0.25 inline size-3" />
           </Link>
         </Tooltip>

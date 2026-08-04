@@ -11,7 +11,7 @@ import { isTwoStringsEqual } from "@/hooks/liquidity/utils";
 import { isUndefined } from "@/utils";
 import { parseRiskCSV } from "@/utils/csv";
 
-import CsvDownload from "./CsvDownload";
+import PredictionsCsvButton from "./PredictionsCsvButton";
 
 interface ICsvUploadPopup {
   isOpen: boolean;
@@ -58,7 +58,7 @@ const CsvUploadPopup: React.FC<ICsvUploadPopup> = ({
       {...{ isOpen }}
     >
       <div className="flex size-full flex-col justify-center gap-6">
-        <h2 className="w-full. text-klerosUIComponentsPrimaryText text-center text-2xl font-semibold">
+        <h2 className="text-klerosUIComponentsPrimaryText w-full text-center text-2xl font-semibold">
           Upload CSV Predictions
         </h2>
         <div
@@ -67,7 +67,7 @@ const CsvUploadPopup: React.FC<ICsvUploadPopup> = ({
             "flex flex-col gap-2",
           )}
         >
-          <h3 className="text-klerosUIComponentsPrimaryText text-sm">
+          <h3 className="text-klerosUIComponentsPrimaryText text-sm font-medium">
             Required CSV File
           </h3>
           <div
@@ -95,7 +95,7 @@ const CsvUploadPopup: React.FC<ICsvUploadPopup> = ({
             }
           </span>
         </div>
-        <CsvDownload />
+        <PredictionsCsvButton text="Download CSV Template" />
         <FileUploader
           className="w-full [&_small]:top-0 [&_small]:text-sm"
           callback={(file) => {

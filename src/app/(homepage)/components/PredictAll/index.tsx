@@ -1,4 +1,4 @@
-import { Button, Card } from "@kleros/ui-components-library";
+import { Button, Card, Tooltip } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { useToggle } from "react-use";
 
@@ -11,6 +11,19 @@ import CheckOutline from "@/assets/svg/check-outline-button.svg";
 
 import { PredictAllPopup } from "./PredictAllPopup";
 
+const MaybeTooltip: React.FC<{
+  enabled: boolean;
+  text: string;
+  children: React.ReactNode;
+}> = ({ enabled, text, children }) =>
+  enabled ? (
+    <Tooltip text={text} place="top" small className="[&_small]:text-xs">
+      {children}
+    </Tooltip>
+  ) : (
+    <>{children}</>
+  );
+
 const PredictAll = ({ enabled }: { enabled: boolean }) => {
   const [isOpen, toggleIsOpen] = useToggle(false);
   const markets = usePredictionMarkets();
@@ -20,7 +33,7 @@ const PredictAll = ({ enabled }: { enabled: boolean }) => {
     <Card
       round
       className={clsx(
-        "border-gradient-purple-blue h-auto w-full border-none p-4 md:px-8",
+        "border-gradient-purple-blue h-auto w-full rounded-xl border-none px-4 py-6 md:px-8",
         "flex flex-wrap items-start justify-center gap-x-8 gap-y-4",
         "md:flex-row md:items-center md:justify-between",
       )}
@@ -29,21 +42,28 @@ const PredictAll = ({ enabled }: { enabled: boolean }) => {
         Predict all the estimates above
       </h3>
       <EnsureChain>
-        <Button
-          icon={
-            <CheckOutline
-              className={clsx(
-                "mr-2 size-4",
-                markets.length === 0
-                  ? ["[&_path]:fill-klerosUIComponentsStroke"]
-                  : ["[&_path]:fill-klerosUIComponentsWhiteBackground"],
-              )}
-            />
-          }
-          text="Predict Selected"
-          onPress={toggleIsOpen}
-          isDisabled={!enabled}
-        />
+        {/* Wrapped only while disabled: otherwise the button is a dead control
+            with no explanation, but on an enabled button the hint is noise. */}
+        <MaybeTooltip
+          enabled={!enabled}
+          text="Move a slider away from the market estimate to make a prediction."
+        >
+          <Button
+            icon={
+              <CheckOutline
+                className={clsx(
+                  "mr-2 size-4",
+                  markets.length === 0
+                    ? ["[&_path]:fill-klerosUIComponentsStroke"]
+                    : ["[&_path]:fill-klerosUIComponentsWhiteBackground"],
+                )}
+              />
+            }
+            text="Predict Selected"
+            onPress={toggleIsOpen}
+            isDisabled={!enabled}
+          />
+        </MaybeTooltip>
         {isOpen ? (
           <PredictAllPopup {...{ isOpen, toggleIsOpen, toggleGuide }} />
         ) : null}

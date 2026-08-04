@@ -4,6 +4,8 @@ import { useState } from "react";
 
 import { cn } from "@/utils";
 
+import { FOCUS_RING } from "@/consts/styles";
+
 interface Quarter {
   id: string;
   label: string;
@@ -33,6 +35,7 @@ const QuarterTabs: React.FC = () => {
             onClick={() => !disabled && setActiveQuarter(id)}
             className={cn(
               "-mb-px flex items-center gap-2 border-b-2 pb-2 text-sm font-semibold transition-colors",
+              FOCUS_RING,
               isActive
                 ? "border-klerosUIComponentsPrimaryBlue text-klerosUIComponentsPrimaryText"
                 : "text-klerosUIComponentsSecondaryText border-transparent",
@@ -43,7 +46,7 @@ const QuarterTabs: React.FC = () => {
           >
             {label}
             {disabled ? (
-              <span className="bg-klerosUIComponentsMediumBlue text-klerosUIComponentsPrimaryBlue rounded-full px-2 py-0.5 text-[10px] font-medium">
+              <span className="bg-klerosUIComponentsMediumBlue text-klerosUIComponentsPrimaryBlue rounded-full px-2 py-0.5 text-xs font-medium">
                 Coming soon
               </span>
             ) : null}

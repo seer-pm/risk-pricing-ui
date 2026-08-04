@@ -10,6 +10,8 @@ import { useAccount, useEnsAvatar, useEnsName } from "wagmi";
 
 import { shortenAddress } from "@/utils";
 
+import { FOCUS_RING } from "@/consts/styles";
+
 import AccountDetails from "./AccountDetails";
 
 interface IIdenticonOrAvatar {
@@ -95,10 +97,17 @@ const AccountDisplay: React.FC = () => {
   const [isOpen, toggleIsOpen] = useToggle(false);
   return (
     <>
-      <div
+      {/* A button, not a div: this opens the account panel, and as a div it was
+          unreachable by keyboard entirely. */}
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-label="Account details"
         className={clsx(
-          "bg-klerosUIComponentsLightBackground ease-ease cursor-pointer rounded-[300px] transition",
+          "bg-klerosUIComponentsLightBackground ease-ease cursor-pointer rounded-full transition",
           "flex content-center items-center justify-between px-3",
+          FOCUS_RING,
         )}
         onClick={toggleIsOpen}
       >
@@ -107,11 +116,11 @@ const AccountDisplay: React.FC = () => {
           <AddressOrName
             className={clsx(
               "text-klerosUIComponentsPrimaryText/80 hover:text-klerosUIComponentsPrimaryText text-sm",
-              "cursor-pointer transition-colors duration-200",
+              "transition-colors duration-200",
             )}
           />
         </div>
-      </div>
+      </button>
       <AccountDetails {...{ isOpen, toggleIsOpen }} />
     </>
   );

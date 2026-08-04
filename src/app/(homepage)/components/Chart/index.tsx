@@ -14,7 +14,7 @@ import {
 
 import { type PdSeries } from "@/hooks/useRiskPdHistory";
 
-import { shortenName } from "@/utils";
+import { formatPd, shortenName } from "@/utils";
 
 interface IChart {
   /** Already filtered to the visible set by the parent. */
@@ -23,18 +23,23 @@ interface IChart {
   hoveredSymbol?: string | null;
 }
 
+// lightweight-charts needs concrete colour strings rather than classes, so the
+// two tokens it consumes are mirrored here. These are the SecondaryText and
+// Stroke values from the Kleros theme - keep them in step with it.
+const CHART_COLORS = {
+  light: { accent: "#999999", grid: "#e5e5e5" },
+  dark: { accent: "#becce5", grid: "#392c74" },
+} as const;
+
 const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
-  const { theme } = useTheme();
+  // resolvedTheme, not theme: the provider defaults to "system", so `theme`
+  // is "system" (not "light"/"dark") until the user picks one explicitly.
+  const { resolvedTheme } = useTheme();
 
-  const accentColor = useMemo(() => {
-    if (theme === "light") return "#999";
-    else return "#BECCE5";
-  }, [theme]);
-
-  const gridLinesColor = useMemo(() => {
-    if (theme === "light") return "#e5e5e5";
-    else return "#392C74";
-  }, [theme]);
+  const { accentColor, gridLinesColor } = useMemo(() => {
+    const c = CHART_COLORS[resolvedTheme === "dark" ? "dark" : "light"];
+    return { accentColor: c.accent, gridLinesColor: c.grid };
+  }, [resolvedTheme]);
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const seriesRefMap = useRef<Record<string, ISeriesApi<"Line">>>({});
@@ -100,7 +105,7 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
         mode: PriceScaleMode.Logarithmic,
       },
       localization: {
-        priceFormatter: (val: number) => `${val.toFixed(2)}%`,
+        priceFormatter: (val: number) => formatPd(val),
       },
       leftPriceScale: {
         borderVisible: false,
@@ -158,7 +163,9 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
   }, [series, accentColor, gridLinesColor, applyHighlight]);
 
   return (
-    <div className="flex size-full flex-col">
+    // min-h matches the chart's own height, so the container doesn't collapse
+    // to zero for a frame before createChart runs.
+    <div className="flex size-full min-h-100 flex-col">
       <div ref={chartContainerRef} />
     </div>
   );

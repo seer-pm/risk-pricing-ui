@@ -16,8 +16,6 @@ import ArrowUp from "@/assets/svg/long-arrow-up.svg";
 
 import { isUndefined } from "@/utils";
 
-import { assetColors } from "../../RiskPricing/constants";
-
 const RiskMarketHeader: React.FC = () => {
   const outcomes = useRiskPredictionStore((state) => state.outcomes);
   const predictions = useRiskPredictionStore((state) => state.riskPredictions);
@@ -46,6 +44,11 @@ const RiskMarketHeader: React.FC = () => {
       <ScrollFade
         className={clsx("rounded-base w-full shrink", "max-h-40 min-h-18")}
       >
+        {!hasPredictions ? (
+          <p className="text-klerosUIComponentsSecondaryText py-4 text-center text-sm">
+            No predictions yet — move a slider to differ from the market.
+          </p>
+        ) : null}
         <div className="flex w-full flex-col gap-0.25">
           <AnimatePresence>
             {outcomes.slice(0, -1).map((outcome) => {
@@ -69,11 +72,7 @@ const RiskMarketHeader: React.FC = () => {
                       <div
                         className="size-2 rounded-full"
                         style={{
-                          backgroundColor:
-                            colorOf.get(outcome.outcome) ??
-                            assetColors[
-                              outcome.outcomeIndex % assetColors.length
-                            ],
+                          backgroundColor: colorOf(outcome.outcome),
                         }}
                       />
                       <span className="text-klerosUIComponentsPrimaryText text-sm font-semibold sm:text-base">
@@ -113,9 +112,10 @@ const RiskMarketHeader: React.FC = () => {
                   {hasPredictions ? (
                     <LightButton
                       className="absolute top-1/2 right-2 -translate-y-1/2 p-1"
+                      ariaLabel={`Remove ${outcome.outcome} prediction`}
                       text=""
                       icon={
-                        <CloseIcon className="[&_path]:stroke-klerosUIComponentsSecondaryText size-3" />
+                        <CloseIcon className="[&_path]:stroke-klerosUIComponentsSecondaryText size-4" />
                       }
                       onPress={() => removePrediction(outcome.outcomeId)}
                     />

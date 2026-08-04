@@ -12,6 +12,8 @@ import StatsBarIcon from "@/assets/svg/stats-bar.svg";
 import { cn } from "@/utils";
 import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
+import { FOCUS_RING } from "@/consts/styles";
+
 import Chart from "../Chart";
 import {
   ASSET_CATEGORIES,
@@ -152,7 +154,8 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
                 aria-pressed={isActive}
                 onClick={() => setView(id)}
                 className={cn(
-                  "flex cursor-pointer items-center justify-center gap-2 rounded-md p-2 transition-colors",
+                  "flex cursor-pointer items-center justify-center gap-2 rounded-lg p-2 transition-colors",
+                  FOCUS_RING,
                   // The icons hardcode a fill, so recolour their paths directly.
                   "[&_path]:fill-current",
                   isActive
@@ -191,7 +194,8 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
                 aria-pressed={isActive}
                 onClick={() => selectCategory(id)}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3.5 py-2 text-sm font-bold transition-colors",
+                  "flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3.5 py-2 text-sm font-semibold transition-colors",
+                  FOCUS_RING,
                   isActive
                     ? "border-transparent"
                     : "border-klerosUIComponentsStroke text-klerosUIComponentsPrimaryText hover:border-klerosUIComponentsPrimaryBlue",
@@ -236,14 +240,16 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
           return (
             <button
               key={asset.symbol}
+              type="button"
+              aria-pressed={active}
               onClick={() => toggleAsset(asset.symbol)}
               onMouseEnter={() => setHoveredSymbol(asset.symbol)}
               className={cn(
                 "cursor-pointer rounded-full border px-2 py-1 text-xs font-medium transition",
-                "hover:bg-neutral-100 dark:hover:bg-neutral-800",
+                FOCUS_RING,
                 active
                   ? "border-transparent"
-                  : "border-neutral-300 bg-white text-neutral-500 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-400",
+                  : "border-klerosUIComponentsStroke bg-klerosUIComponentsWhiteBackground text-klerosUIComponentsSecondaryText hover:border-klerosUIComponentsPrimaryBlue",
               )}
               // Category colours vary in lightness, so the label colour has to
               // follow the chip rather than always being white.
@@ -264,8 +270,12 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
         })}
 
         <button
+          type="button"
           onClick={toggleAll}
-          className="cursor-pointer rounded-full border border-neutral-300 bg-white px-2 py-1 text-xs font-medium text-neutral-500 transition hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800"
+          className={cn(
+            "border-klerosUIComponentsStroke bg-klerosUIComponentsWhiteBackground text-klerosUIComponentsSecondaryText hover:border-klerosUIComponentsPrimaryBlue hover:text-klerosUIComponentsPrimaryBlue cursor-pointer rounded-full border px-2 py-1 text-xs font-medium transition",
+            FOCUS_RING,
+          )}
         >
           {allHidden ? "Select all" : "Clear all"}
         </button>
@@ -279,13 +289,13 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
           noToAllQuarterlyProbability={noToAllQuarterlyProbability}
         />
       ) : isChartEmpty || chartError ? (
-        <div className="text-klerosUIComponentsSecondaryText flex h-96 w-full items-center justify-center text-sm">
+        <div className="text-klerosUIComponentsSecondaryText flex h-100 w-full items-center justify-center text-sm">
           {chartError
             ? "Could not compute the probability history."
             : "Not enough price history yet to chart."}
         </div>
       ) : isChartLoading || !series ? (
-        <div className="flex h-96 w-full flex-col items-center justify-center gap-3">
+        <div className="flex h-100 w-full flex-col items-center justify-center gap-3">
           <Loader />
           <span className="text-klerosUIComponentsSecondaryText text-sm">
             Solving implied probabilities… {Math.round(chartProgress * 100)}%

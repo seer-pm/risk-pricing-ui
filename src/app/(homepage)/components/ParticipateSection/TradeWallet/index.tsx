@@ -8,6 +8,7 @@ import { useTradeWallet } from "@/context/TradeWalletContext";
 import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 
+import { Skeleton } from "@/components/Skeleton";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import ExternalArrow from "@/assets/svg/external-arrow.svg";
@@ -140,16 +141,18 @@ export const TradeWallet = () => {
                 "border-klerosUIComponentsStroke border-t md:border-t-0 md:border-l",
               )}
             >
-              <h3 className="text-klerosUIComponentsSecondaryText text-sm">
+              {/* A label and its value, not two nested heading levels - the
+                  value used to be an h4 twice the size of its own h3. */}
+              <p className="text-klerosUIComponentsSecondaryText text-sm font-medium">
                 sDai Balance
-              </h3>
-              <h4 className="text-klerosUIComponentsPrimaryText text-2xl font-semibold">
+              </p>
+              <p className="text-klerosUIComponentsPrimaryText text-2xl font-semibold">
                 {isBalanceLoading ? (
-                  <span className="animate-pulse">Loading...</span>
+                  <Skeleton className="my-1 h-6 w-24" />
                 ) : (
                   <span>{formatValue(balanceData?.value ?? 0n)}</span>
                 )}
-              </h4>
+              </p>
             </div>
           </div>
           <ProjectBalances />

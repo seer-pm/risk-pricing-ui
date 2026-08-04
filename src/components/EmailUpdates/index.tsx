@@ -21,6 +21,7 @@ const EmailUpdates: React.FC<{
   return (
     <>
       <LightButton
+        ariaLabel="Email notifications"
         text={withText ? "Email notifications" : ""}
         onPress={toggleIsOpen}
         icon={<CogIcon className={cn("size-4", iconClassName)} />}

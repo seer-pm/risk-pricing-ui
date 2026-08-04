@@ -76,7 +76,7 @@ export const RedeemRiskInterface: React.FC<RedeemRiskInterfaceProps> = ({
       0,
     );
     if (total === 0) return "0.00";
-    return total < 0.01 ? "< 0.01" : total.toFixed(2);
+    return total < 0.01 ? "<0.01" : total.toFixed(2);
   }, [positionsToRedeem, payoutFractions]);
 
   const redeemRiskFromTradeExecutor = useRedeemRiskToTradeExecutor(() => {
@@ -110,6 +110,7 @@ export const RedeemRiskInterface: React.FC<RedeemRiskInterfaceProps> = ({
     >
       <LightButton
         className="absolute top-4 right-4 p-1"
+        ariaLabel="Close"
         text=""
         icon={
           <CloseIcon className="[&_path]:stroke-klerosUIComponentsSecondaryText size-4" />

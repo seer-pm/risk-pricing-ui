@@ -1,18 +1,5 @@
 import { gnosis, mainnet, optimism, base } from "viem/chains";
 
-export const assetColors = [
-  "#22c55e",
-  "#3b82f6",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#06b6d4",
-  "#eab308",
-  "#ec4899",
-  "#14b8a6",
-  "#f97316",
-];
-
 export type AssetCategoryId = "eth" | "usd" | "btc" | "funds";
 
 type AssetCategory = {
@@ -118,6 +105,24 @@ export const zones: Zone[] = [
 export const zoneAxis = zones
   .map((x) => x.from)
   .concat([zones.at(-1)?.to ?? 100]);
+
+/** Top of the PD scale, in percent. */
+export const MAX_RISK = 100;
+
+/**
+ * PD spans orders of magnitude across assets (0.05% to 30%+), so every plot of
+ * it - the market-estimate bars, the prediction slider and the zone bar - maps
+ * value to horizontal position on the same log scale. Returns 0..100 as a
+ * percentage of track width.
+ */
+export const logScalePercent = (value: number): number => {
+  if (value <= 0) return 0;
+  return (Math.log10(value + 1) / Math.log10(MAX_RISK + 1)) * MAX_RISK;
+};
+
+/** Inverse of {@link logScalePercent} - track position back to a PD. */
+export const logScaleToValue = (percent: number): number =>
+  Math.pow(10, (percent / MAX_RISK) * Math.log10(MAX_RISK + 1)) - 1;
 
 export const MARKET_PD_TOOLTIP =
   "The market's current consensus on the annualized probability this asset defaults, implied by current trading prices.";

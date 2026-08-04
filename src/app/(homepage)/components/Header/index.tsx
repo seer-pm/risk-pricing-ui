@@ -12,12 +12,10 @@ import HelpIcon from "@/assets/menu-icons/help.svg";
 import SeerHeaderBackground from "@/assets/png/seer-header-bg.png";
 import ChartBar from "@/assets/svg/chart-bar.svg";
 
-import { cn } from "@/utils";
+import { cn, formatPd } from "@/utils";
 import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
 import { endTime, marketMetadata } from "@/consts/markets";
-
-import { assetColors } from "../RiskPricing/constants";
 
 import Countdown from "./Countdown";
 
@@ -61,7 +59,7 @@ const Header: React.FC = () => {
 
   return (
     <div className="flex flex-col items-start gap-4">
-      <h1 className="text-klerosUIComponentsPrimaryText text-2xl font-semibold">
+      <h1 className="text-klerosUIComponentsPrimaryText text-3xl font-semibold">
         {marketMetadata.name}
       </h1>
       <div className="flex flex-wrap gap-4">
@@ -95,12 +93,17 @@ const Header: React.FC = () => {
       >
         <Image
           src={SeerHeaderBackground}
-          alt="Seer header background"
+          alt=""
+          aria-hidden="true"
+          priority
           className="absolute -z-2 size-full object-cover max-md:opacity-35"
         />
         <div className="flex size-full flex-wrap items-center gap-6 px-6 pt-3.75">
           <SeerLogo />
-          <p className="text-klerosUIComponentsPrimaryText text-base">
+          {/* Not a <p>: the Tooltip below renders a <div> wrapper, and a div
+              inside a p is a parse error that fails hydration and forces the
+              whole root to client-render. */}
+          <div className="text-klerosUIComponentsPrimaryText text-base">
             What is the yearly Probability of{" "}
             <Tooltip
               text={defaultDefinition}
@@ -114,7 +117,7 @@ const Header: React.FC = () => {
               <HelpIcon className="ml-1 inline-block size-3.5" />
             </Tooltip>{" "}
             for the following DeFi assets during Q3 2026?
-          </p>
+          </div>
         </div>
         <p className="text-klerosUIComponentsSecondaryText px-6 pb-3.75 text-xs whitespace-pre-line">
           What is the probability? Estimate the risk level of the following
@@ -128,8 +131,7 @@ const Header: React.FC = () => {
           </h2>
           <div className="flex flex-row flex-wrap items-center gap-2">
             {winningOutcomes.map(({ outcome, index, payoutFraction }) => {
-              const color =
-                colorOf.get(outcome) ?? assetColors[index % assetColors.length];
+              const color = colorOf(outcome);
               return (
                 <div
                   className={cn(
@@ -150,7 +152,7 @@ const Header: React.FC = () => {
                     >
                       |
                     </span>
-                    {Number((payoutFraction * 100).toFixed(2))}%
+                    {formatPd(payoutFraction * 100)}
                   </p>
                 </div>
               );

@@ -33,13 +33,24 @@ export default function RootLayout({
   const cookies = headers().get("cookie");
 
   return (
-    <html lang="en" className="box-border size-full" suppressHydrationWarning>
+    // The font variables go on <html>, not <body>: globals.css maps them to
+    // Tailwind's --font-sans/--font-mono in an @theme block, which resolves at
+    // :root. Declared on <body> they'd be out of scope there and the whole
+    // chain would collapse to the ui-sans-serif fallback.
+    <html
+      lang="en"
+      className={clsx(
+        `${geistSans.variable} ${geistMono.variable}`,
+        "box-border size-full",
+      )}
+      suppressHydrationWarning
+    >
       <head>
         <meta name="apple-mobile-web-app-title" content="Foresight | Kleros" />
       </head>
       <body
         className={clsx(
-          `${geistSans.variable} ${geistMono.variable} bg-klerosUIComponentsLightBackground antialiased`,
+          "bg-klerosUIComponentsLightBackground antialiased",
           "flex size-full flex-col",
         )}
       >

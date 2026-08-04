@@ -266,6 +266,7 @@ const EmailUpdatesModal: React.FC<IEmailUpdatesModal> = ({
           Email notifications
         </h2>
         <LightButton
+          ariaLabel="Close"
           text=""
           icon={
             <CloseIcon className="[&_path]:stroke-klerosUIComponentsSecondaryText size-4" />

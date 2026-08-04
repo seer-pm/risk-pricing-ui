@@ -43,9 +43,22 @@ export function deserializeMarket(market: SerializedMarket): Market {
   return result as Market;
 }
 
+const asJson = async (res: Response, label: string) => {
+  // Without this the caller parses the error page as if it were data and fails
+  // later with something unrelated, so the query has to reject here.
+  if (!res.ok) {
+    throw new Error(`${label} request failed (${res.status})`);
+  }
+  return res.json();
+};
+
 const fetchMarket = async () => {
   const [rawMarketData, rawChartData] = await Promise.all([
-    fetch(`https://app.seer.pm/.netlify/functions/get-market`, {
+    // Same-origin via the Seer proxy rather than a direct cross-origin call:
+    // the upstream returns a platform 502 with no CORS headers when it falls
+    // over, which the browser surfaces as an opaque CORS error instead of a
+    // status this code can act on. See src/app/api/seer/[fn]/route.ts.
+    fetch("/api/seer/get-market", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -54,8 +67,8 @@ const fetchMarket = async () => {
         chainId: gnosis.id,
         id: RISK_PRICING_MARKET_ID,
       }),
-    }).then((res) => res.json()),
-    fetch("api/risk-market-chart").then((res) => res.json()),
+    }).then((res) => asJson(res, "Market")),
+    fetch("/api/risk-market-chart").then((res) => asJson(res, "Market chart")),
   ]);
   const marketData = deserializeMarket(rawMarketData) as Market;
   const chartData = rawChartData.data as PoolHourData[][];

@@ -33,6 +33,7 @@ const MobileNavbar: React.FC<IMobileNavbar> = ({ toggleIsHelpOpen }) => {
       <div className="relative flex h-16 w-full items-center justify-between md:!hidden">
         <Logo />
         <LightButton
+          ariaLabel="Open menu"
           text=""
           icon={<HamburgerIcon />}
           onPress={toggleIsMenuOpen}

@@ -18,9 +18,11 @@ import CheckOutline from "@/assets/svg/check-outline-button.svg";
 import InfoIcon from "@/assets/svg/info.svg";
 import MinusOutline from "@/assets/svg/minus-outline.svg";
 
+import { formatUsd } from "@/utils";
+
 import { advancedUserGuide } from "@/consts/markets";
 
-import { assetColors, NO_TO_ALL_COLOR } from "./constants";
+import { NO_TO_ALL_COLOR } from "./constants";
 import Details from "./Details";
 import PositionValue from "./PositionValue";
 import PredictionSlider from "./PredictionSlider";
@@ -63,7 +65,7 @@ const RiskPricing = ({
       aria-label="card"
       className={clsx(
         "bg-klerosUIComponentsLightBackground flex h-auto w-full max-w-full flex-col gap-4",
-        "hover:shadow-md [&>div]:my-0",
+        "transition-shadow hover:shadow-md [&>div]:my-0",
         // "No To All" is not an asset - tint the whole card so the section
         // reads as separate from the per-asset sliders above it.
         isNoToAll && [
@@ -86,11 +88,10 @@ const RiskPricing = ({
                       style={{
                         backgroundColor: isNoToAll
                           ? NO_TO_ALL_COLOR
-                          : (colorOf.get(outcomeName) ??
-                            assetColors[outcomeIndex % assetColors.length]),
+                          : colorOf(outcomeName),
                       }}
                     />
-                    <h3 className="text-klerosUIComponentsPrimaryText text-left font-semibold">
+                    <h3 className="text-klerosUIComponentsPrimaryText text-left text-lg font-semibold">
                       {outcomeName}
                     </h3>
                   </div>
@@ -98,7 +99,6 @@ const RiskPricing = ({
                     <div className="flex items-center gap-2">
                       <div className="border-klerosUIComponentsPrimaryText h-4 w-0 border-[0.5px] max-md:hidden" />
 
-                      <p className="text-klerosUIComponentsPrimaryText justify-center text-sm"></p>
                       <Tooltip
                         text="Click here to understand your Position"
                         small
@@ -119,7 +119,7 @@ const RiskPricing = ({
                           Position:
                           <span className="font-bold">
                             {" "}
-                            {value.toFixed(2)}${" "}
+                            {formatUsd(value)}{" "}
                           </span>
                           <InfoIcon className="mb-0.25 inline size-3" />
                         </Link>

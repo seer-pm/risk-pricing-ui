@@ -5,6 +5,11 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  /* next/font/local exposes Geist as --font-geist-* on <body> (see layout.tsx);
+     these bind it to Tailwind's font utilities and to Preflight's default. */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-red-2: var(--red-2);
@@ -44,6 +49,19 @@
   }
 
   --animate-slide-in-right: slideInRight 0.5s ease-out;
+
+  /* Used by the mobile navbar, which previously referenced an undefined class
+     and so opened with no animation at all. */
+  @keyframes slideInTop {
+    0% {
+      transform: translateY(-100%);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+
+  --animate-slide-in-top: slideInTop 0.5s ease-out;
 
   @keyframes spinner {
     0% {
@@ -93,7 +111,7 @@
   body {
     color: var(--foreground);
     background: var(--background);
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: var(--font-sans);
 
     /* ================================
    Custom scrollbar styles
@@ -105,7 +123,7 @@
     }
 
     ::-webkit-scrollbar-track {
-      background: #fff;
+      background: var(--background);
     }
 
     ::-webkit-scrollbar-thumb {
@@ -120,7 +138,8 @@
     /* Firefox */
     * {
       scrollbar-width: thin;
-      scrollbar-color: var(--color-klerosUIComponentsSecondaryBlue) #fff;
+      scrollbar-color: var(--color-klerosUIComponentsSecondaryBlue)
+        var(--background);
     }
   }
 }
@@ -160,11 +179,17 @@
   .loader {
     width: 85px;
     height: 50px;
-    --g1: conic-gradient(from 90deg at left 3px top 3px, #8b52f6 90deg, #fff 0);
+    /* The gap colour has to be the page background, not white - this loader is
+       the first thing a dark-mode user sees. */
+    --g1: conic-gradient(
+      from 90deg at left 3px top 3px,
+      #8b52f6 90deg,
+      var(--background) 0
+    );
     --g2: conic-gradient(
       from -90deg at bottom 3px right 3px,
       #8b52f6 90deg,
-      #fff 0
+      var(--background) 0
     );
     background:
       var(--g1), var(--g1), var(--g1), var(--g2), var(--g2), var(--g2);

@@ -26,6 +26,31 @@ export const formatValue = (value: bigint, decimals = 18) => {
 };
 
 /**
+ * Decimal places used for every probability-of-default figure in the UI.
+ * PD runs from ~0.05% to 30%+ and small differences at the low end are
+ * meaningful, so this errs on the precise side.
+ */
+export const PD_DECIMALS = 3;
+
+/**
+ * @description The single formatter for probability-of-default values. Always
+ * emits the same number of decimals so a column of PDs lines up - callers must
+ * not pre-round, and must not use `Number(x.toFixed(n))`, which strips trailing
+ * zeros and produces a ragged column.
+ * @param probability PD as a percentage (e.g. 0.74 for 0.74%)
+ */
+export const formatPd = (probability: number): string => {
+  if (probability > 0 && probability < 10 ** -PD_DECIMALS) {
+    return `<0.${"0".repeat(PD_DECIMALS - 1)}1%`;
+  }
+  return `${probability.toFixed(PD_DECIMALS)}%`;
+};
+
+/** @description USD amounts, with the sign where readers expect it. */
+export const formatUsd = (value: number): string =>
+  value > 0 && value < 0.01 ? "<$0.01" : `$${commify(value.toFixed(2))}`;
+
+/**
  * @param error
  * @description Tries to extract the human readable error message, otherwise reverts to error.message
  * @returns Human readable error if possible

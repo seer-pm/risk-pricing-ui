@@ -26,13 +26,13 @@ import AdvancedSection from "./components/AdvancedSection";
 import Header from "./components/Header";
 import MarketEstimate from "./components/MarketEstimate";
 import ParticipateSection from "./components/ParticipateSection";
-import ExportPredictions from "./components/ParticipateSection/CsvUpload/ExportPredictions";
+import PredictionsCsvButton from "./components/ParticipateSection/CsvUpload/PredictionsCsvButton";
 import PredictAll from "./components/PredictAll";
 import QuarterTabs from "./components/QuarterTabs";
 import RiskPricing from "./components/RiskPricing";
 
 export default function Home() {
-  const { data, isLoading } = useMarketData();
+  const { data, isLoading, isError, refetch, isRefetching } = useMarketData();
   const predictions = useRiskPredictionStore((state) => state.riskPredictions);
   const resetRiskPredictions = useRiskPredictionStore(
     (state) => state.resetRiskPredictions,
@@ -68,37 +68,48 @@ export default function Home() {
         <Header />
         <QuarterTabs />
         <div className="min-h-106 space-y-6">
-          {!isLoading ? (
+          {isError ? (
+            <div className="border-klerosUIComponentsStroke flex h-96 w-full flex-col items-center justify-center gap-4 rounded-xl border border-dashed px-4 text-center">
+              <p className="text-klerosUIComponentsPrimaryText text-base font-semibold">
+                Couldn&apos;t load market data
+              </p>
+              <p className="text-klerosUIComponentsSecondaryText max-w-100 text-sm">
+                The market feed is unreachable right now. Your predictions are
+                saved locally and nothing has been lost.
+              </p>
+              <Button
+                variant="secondary"
+                small
+                isLoading={isRefetching}
+                text="Try again"
+                onPress={() => refetch()}
+              />
+            </div>
+          ) : !isLoading ? (
             <>
               {data?.outcomes ? (
+                // Values are passed through raw: formatPd owns the rounding, so
+                // pre-rounding here would strip trailing zeros and leave the
+                // column of PDs ragged.
                 <MarketEstimate
                   assets={data.outcomes.slice(0, -2).map((outcome) => {
                     return {
                       symbol: outcome.outcome,
-                      risk: Number((outcome.probability * 100).toFixed(3)),
-                      quarterlyRisk: Number(
-                        (yearlyToQuarterly(outcome.probability) * 100).toFixed(
-                          3,
-                        ),
-                      ),
+                      risk: outcome.probability * 100,
+                      quarterlyRisk:
+                        yearlyToQuarterly(outcome.probability) * 100,
                     };
                   })}
                   noToAllProbability={
                     data.outcomes.at(-2)?.probability
-                      ? Number(
-                          (data.outcomes.at(-2)!.probability * 100).toFixed(3),
-                        )
+                      ? data.outcomes.at(-2)!.probability * 100
                       : undefined
                   }
                   noToAllQuarterlyProbability={
                     data.outcomes.at(-2)?.probability
-                      ? Number(
-                          (
-                            yearlySurvivalToQuarterly(
-                              data.outcomes.at(-2)!.probability,
-                            ) * 100
-                          ).toFixed(3),
-                        )
+                      ? yearlySurvivalToQuarterly(
+                          data.outcomes.at(-2)!.probability,
+                        ) * 100
                       : undefined
                   }
                 />
@@ -144,7 +155,7 @@ export default function Home() {
                   text="Reset Predictions"
                   onPress={resetRiskPredictions}
                 />
-                <ExportPredictions />
+                <PredictionsCsvButton text="Export Predictions" />
               </div>
             ) : null}
             <PredictAll enabled={hasPredictions} />

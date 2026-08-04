@@ -75,6 +75,7 @@ const MintInterface: React.FC<MintInterfaceProps> = ({
     >
       <LightButton
         className="absolute top-4 right-4 p-1"
+        ariaLabel="Close"
         text=""
         icon={
           <CloseIcon className="[&_path]:stroke-klerosUIComponentsSecondaryText size-4" />

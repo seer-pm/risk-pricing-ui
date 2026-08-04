@@ -14,26 +14,26 @@ const ThemeToggle: React.FC<{
   iconClassName?: string;
   withText?: boolean;
 }> = ({ className, iconClassName, withText = false }) => {
-  const { theme, setTheme } = useTheme();
+  // resolvedTheme, not theme: the provider has no defaultTheme so `theme` is
+  // "system" until the user picks one, which made the first click always go to
+  // light regardless of what was on screen.
+  const { resolvedTheme, setTheme } = useTheme();
 
   const toggleTheme = () => {
-    if (theme === "light") {
-      setTheme("dark");
-    } else {
-      setTheme("light");
-    }
+    setTheme(resolvedTheme === "light" ? "dark" : "light");
   };
 
   const text = useMemo(
-    () => (theme === "light" ? "Dark Mode" : "Light Mode"),
-    [theme],
+    () => (resolvedTheme === "light" ? "Dark Mode" : "Light Mode"),
+    [resolvedTheme],
   );
   return (
     <LightButton
+      ariaLabel={text}
       text={withText ? text : ""}
       onPress={toggleTheme}
       icon={
-        theme === "light" ? (
+        resolvedTheme === "light" ? (
           <MoonIcon className={cn("size-4", iconClassName)} />
         ) : (
           <SunIcon className={cn("size-4", iconClassName)} />

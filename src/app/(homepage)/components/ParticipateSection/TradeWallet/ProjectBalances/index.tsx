@@ -9,8 +9,6 @@ import { useTradeWallet } from "@/context/TradeWalletContext";
 import { useAssetColorMap } from "@/hooks/useAssetColorMap";
 import { useTokensBalances } from "@/hooks/useTokenBalances";
 
-import { assetColors } from "../../../RiskPricing/constants";
-
 import ProjectAmount from "./ProjectAmount";
 
 const ProjectBalances: React.FC = () => {
@@ -39,14 +37,12 @@ const ProjectBalances: React.FC = () => {
                 "grid w-full grid-cols-[repeat(auto-fit,minmax(200px,260px))] place-content-center gap-4",
               )}
             >
-              {outcomes.map(({ symbol, outcome, outcomeIndex }, i) => (
+              {outcomes.map(({ symbol, outcome }, i) => (
                 <ProjectAmount
                   key={symbol}
                   {...{
                     name: symbol,
-                    color:
-                      colorOf.get(outcome) ??
-                      assetColors[outcomeIndex % assetColors.length],
+                    color: colorOf(outcome),
                   }}
                   balance={outcomeBalances?.[i]}
                 />

@@ -89,6 +89,7 @@ const MergeInterface: React.FC<MergeInterfaceProps> = ({
     >
       <LightButton
         className="absolute top-4 right-4 p-1"
+        ariaLabel="Close"
         text=""
         icon={
           <CloseIcon className="[&_path]:stroke-klerosUIComponentsSecondaryText size-4" />
@@ -136,7 +137,7 @@ const MergeInterface: React.FC<MergeInterfaceProps> = ({
               isDisabled={tradeExecutorMerge.isPending}
               className={clsx(
                 "absolute -right-1 -bottom-1 px-1 py-0.5",
-                "[&_.button-text]:text-klerosUIComponentsPrimaryText [&_.button-text]:text-sm",
+                "[&_.button-text]:text-klerosUIComponentsPrimaryBlue [&_.button-text]:text-sm",
               )}
             />
           </div>

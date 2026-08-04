@@ -2,7 +2,16 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 
-const ALLOWED_FUNCTIONS = new Set(["sign-in", "me", "collections"]);
+const ALLOWED_FUNCTIONS = new Set([
+  "sign-in",
+  "me",
+  "collections",
+  // Market data goes through here rather than being fetched cross-origin:
+  // when the upstream function crashes it returns a platform 502 with no
+  // CORS headers, which the browser reports as a CORS failure and hides the
+  // real status from the caller. Proxied, the status comes back intact.
+  "get-market",
+]);
 
 const SEER_FUNCTIONS_BASE = "https://app.seer.pm/.netlify/functions";
 

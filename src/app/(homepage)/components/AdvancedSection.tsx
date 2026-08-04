@@ -10,9 +10,11 @@ import SeerLogo from "@/components/SeerLogo";
 import Download from "@/assets/svg/download.svg";
 import ExternalArrow from "@/assets/svg/external-arrow.svg";
 
+import { cn } from "@/utils";
 import { downloadCsvFile } from "@/utils/csv";
 
 import { RISK_PRICING_MARKET_ID } from "@/consts/markets";
+import { FOCUS_RING } from "@/consts/styles";
 
 const AdvancedSection: React.FC = () => {
   const outcomes = useRiskPredictionStore((state) => state.outcomes);
@@ -36,7 +38,7 @@ const AdvancedSection: React.FC = () => {
     <Card
       round
       className={clsx(
-        "border-gradient-purple-blue mb-42 h-auto w-full border-none px-4 py-6 md:px-8",
+        "border-gradient-purple-blue h-auto w-full rounded-xl border-none px-4 py-6 md:px-8",
         "flex flex-col-reverse items-start justify-center gap-x-8 gap-y-4",
         "md:flex-row md:items-center md:justify-between",
       )}
@@ -52,7 +54,7 @@ const AdvancedSection: React.FC = () => {
             href={`https://app.seer.pm/markets/100/${RISK_PRICING_MARKET_ID}`}
             target="_blank"
             rel="noreferrer noopener"
-            className="text-klerosUIComponentsPrimaryBlue items-center text-sm"
+            className="text-klerosUIComponentsPrimaryBlue items-center text-sm transition-opacity hover:underline hover:opacity-80"
           >
             Check it out <ExternalArrow className="ml-1 inline size-4" />
           </Link>
@@ -61,10 +63,14 @@ const AdvancedSection: React.FC = () => {
           Download the latest data (updated in the last 24 hours) in CSV
           format.&nbsp;
           <button
+            type="button"
             onClick={handleDownload}
-            className="text-klerosUIComponentsPrimaryBlue cursor-pointer items-center text-sm"
+            className={cn(
+              "text-klerosUIComponentsPrimaryBlue cursor-pointer items-center rounded-sm text-sm transition-opacity hover:underline hover:opacity-80",
+              FOCUS_RING,
+            )}
           >
-            here <Download className="ml-1 inline size-4" />
+            Download CSV <Download className="ml-1 inline size-4" />
           </button>
         </p>
       </div>

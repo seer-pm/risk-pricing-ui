@@ -18,17 +18,21 @@ import { RiskPricingOutcome } from "@/hooks/useMarketData";
 import { Skeleton } from "@/components/Skeleton";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
+import { formatPd } from "@/utils";
 import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
 import {
+  logScalePercent,
+  logScaleToValue,
   MARKET_PD_TOOLTIP,
+  MAX_RISK,
   NO_TO_ALL_COLOR,
   NO_TO_ALL_LABEL,
   NO_TO_ALL_TOOLTIP,
   NO_TO_ALL_TRACK_COLOR,
-  zoneAxis,
   zones,
 } from "./constants";
+import RiskZoneBar from "./RiskZoneBar";
 import { interpolateColor } from "./utils";
 
 const LoadingSkeleton: React.FC = () => (
@@ -43,7 +47,7 @@ const LoadingSkeleton: React.FC = () => (
     </div>
   </div>
 );
-const maxValue = 100;
+const maxValue = MAX_RISK;
 
 // How close (in percent of track width) the prediction has to get to the market
 // marker before the marker slips out of the way of the slider's own value label.
@@ -63,67 +67,6 @@ const MARKET_PIN_SLIP_DISTANCE = "32px";
 const identityScale = (v: number) => v;
 const identityFromScaled = (v: number) => v;
 
-const logScale = (value: number) => {
-  if (value <= 0) return 0;
-  return (Math.log10(value + 1) / Math.log10(maxValue + 1)) * maxValue;
-};
-
-const logFromScaled = (scaled: number) => {
-  return Math.pow(10, (scaled / maxValue) * Math.log10(maxValue + 1)) - 1;
-};
-
-// ---------------------------------------------------------------------------
-// Static children that don't depend on per-outcome state — computed once per
-// isNoToAll flag instead of once per slider.
-// ---------------------------------------------------------------------------
-
-const ZoneBar = React.memo(function ZoneBar() {
-  return (
-    // mt-12 (not mt-3): when the prediction comes near the market, the marker
-    // slips 32px below the track. This gap is the room it lands in — a smaller
-    // one and the pill/caption would cover the emoji bubbles, which themselves
-    // poke 16px above the bar.
-    <div className="mt-14 flex h-12 overflow-visible rounded-xl">
-      {zones.map((zone) => {
-        const width = logScale(zone.to) - logScale(zone.from);
-        return (
-          <div
-            key={zone.label}
-            className="relative flex items-center justify-center overflow-visible"
-            style={{
-              width: `${width}%`,
-              background: `linear-gradient(to right, ${zone.colors[0]}, ${zone.colors[1]})`,
-            }}
-          >
-            <div className="absolute -top-4 z-10 rounded-full border-4 border-white bg-white text-xl">
-              {zone.emoji}
-            </div>
-            <span className="mt-4 px-1 text-center text-[10px] font-medium text-neutral-700">
-              {zone.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-});
-
-const Axis = React.memo(function Axis() {
-  return (
-    <div className="relative mt-2 h-4 text-xs text-neutral-500">
-      {zoneAxis.map((value) => (
-        <div
-          key={value}
-          className="absolute -translate-x-1/2"
-          style={{ left: `${logScale(value)}%` }}
-        >
-          {value}
-        </div>
-      ))}
-    </div>
-  );
-});
-
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -141,8 +84,8 @@ const PredictionSlider = ({
   }, []);
 
   // Scale helpers — pick identity or log based on isNoToAll.
-  const scale = isNoToAll ? identityScale : logScale;
-  const fromScaledValue = isNoToAll ? identityFromScaled : logFromScaled;
+  const scale = isNoToAll ? identityScale : logScalePercent;
+  const fromScaledValue = isNoToAll ? identityFromScaled : logScaleToValue;
 
   // Store subscription — only re-renders when THIS outcome's prediction
   // changes (or when outcome.probability changes).
@@ -209,7 +152,7 @@ const PredictionSlider = ({
   const displayValue = draftValue ?? prediction;
 
   const formatted = useCallback(
-    (scaled: number) => `${fromScaledValue(scaled).toFixed(3)}%`,
+    (scaled: number) => formatPd(fromScaledValue(scaled)),
     [fromScaledValue],
   );
 
@@ -260,7 +203,7 @@ const PredictionSlider = ({
     // marker away from the track. Insetting here keeps the marker exactly on
     // its value while giving the centred "Market PD (Ann.)" label room to stay
     // inside the accordion body, which is overflow-hidden for its animation.
-    <div className={clsx("w-full px-10", isNoToAll && "pb-10")}>
+    <div className={clsx("w-full px-4 md:px-10", isNoToAll && "pb-10")}>
       {/* Positioning context for the marker only — the ZoneBar and Axis stay
           outside it so the marker's `bottom-0` means "bottom of the track box"
           rather than "bottom of the whole column". */}
@@ -272,10 +215,10 @@ const PredictionSlider = ({
             "[&_#slider-label]:!text-klerosUIComponentsPrimaryText",
             "[&_#slider-label]:font-semibold",
 
-            // Thumb
+            // Thumb — reads against the track in both themes.
             "[&_[role=slider]]:border-4",
-            "[&_[role=slider]]:border-white",
-            "[&_[role=slider]]:bg-white",
+            "[&_[role=slider]]:border-klerosUIComponentsWhiteBackground",
+            "[&_[role=slider]]:bg-klerosUIComponentsWhiteBackground",
             "[&_[role=slider]]:shadow-md",
           )}
           step={0.0001}
@@ -284,7 +227,7 @@ const PredictionSlider = ({
           value={scale(displayValue)}
           leftLabel=""
           rightLabel=""
-          aria-label="Slider"
+          aria-label={`${outcome.outcome} probability of default`}
           callback={handleChange}
           onChangeEnd={handleChangeEnd}
           formatter={formatted}
@@ -335,7 +278,7 @@ const PredictionSlider = ({
               color: getReadableTextColor(isNoToAll ? NO_TO_ALL_COLOR : color),
             }}
           >
-            {`${marketPercent.toFixed(3)}%`}
+            {formatPd(marketPercent)}
           </div>
 
           <span
@@ -347,8 +290,11 @@ const PredictionSlider = ({
         </div>
       </div>
 
-      {!isNoToAll && <ZoneBar />}
-      {!isNoToAll && <Axis />}
+      {/* mt-14: when the prediction comes near the market, the marker slips
+          32px below the track. This gap is the room it lands in — a smaller one
+          and the pill/caption would cover the emoji bubbles, which themselves
+          poke 16px above the bar. */}
+      {!isNoToAll && <RiskZoneBar size="sm" className="mt-14" />}
     </div>
   );
 };
