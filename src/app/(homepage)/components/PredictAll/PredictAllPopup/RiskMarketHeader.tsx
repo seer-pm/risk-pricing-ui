@@ -5,6 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 
 import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
+import { useAssetColorMap } from "@/hooks/useAssetColorMap";
+
 import LightButton from "@/components/LightButton";
 import { ScrollFade } from "@/components/ScrollFade";
 
@@ -22,6 +24,7 @@ const RiskMarketHeader: React.FC = () => {
   const removePrediction = useRiskPredictionStore(
     (state) => state.removePrediction,
   );
+  const colorOf = useAssetColorMap();
   const hasPredictions = Object.entries(predictions).some(
     ([predictionOutcomeId, prediction]) => {
       const marketProbability = outcomes.find(
@@ -67,6 +70,7 @@ const RiskMarketHeader: React.FC = () => {
                         className="size-2 rounded-full"
                         style={{
                           backgroundColor:
+                            colorOf.get(outcome.outcome) ??
                             assetColors[
                               outcome.outcomeIndex % assetColors.length
                             ],

@@ -1,4 +1,5 @@
 import { Tooltip } from "@kleros/ui-components-library";
+import clsx from "clsx";
 import { mainnet } from "viem/chains";
 
 import { useCredoraAssets } from "@/hooks/useCredoraAssets";
@@ -8,7 +9,7 @@ import HelpIcon from "@/assets/menu-icons/help.svg";
 
 import { RiskAssetDetailsMapping, RiskProfileIcon } from "@/consts/markets";
 
-import { BLOCK_EXPLORER_URLS } from "./constants";
+import { BLOCK_EXPLORER_URLS, PRIORITY_METRICS } from "./constants";
 
 export default function RiskPanel({
   outcome,
@@ -21,6 +22,18 @@ export default function RiskPanel({
   const { data } = useCredoraAssets();
   const riskData = (address ? data?.[address] : undefined) ?? fallback;
   if (!riskData) return <p>No data for this asset</p>;
+
+  // Credora's headline metrics lead the grid; everything else keeps the order
+  // it arrived in.
+  const sortedProfiles = [...riskData.risk_profiles].sort((a, b) => {
+    const ai = PRIORITY_METRICS.indexOf(a.metric_name);
+    const bi = PRIORITY_METRICS.indexOf(b.metric_name);
+    if (ai === -1 && bi === -1) return 0;
+    if (ai === -1) return 1;
+    if (bi === -1) return -1;
+    return ai - bi;
+  });
+
   return (
     <div className="w-full max-w-[1080px] rounded-[20px] border border-black/10 bg-white text-black dark:border-white/10 dark:bg-neutral-900 dark:text-white">
       {/* Header */}
@@ -76,15 +89,30 @@ export default function RiskPanel({
       {/* Metrics */}
       <div className="border-b border-black/10 px-6 py-5 dark:border-white/10">
         <div className="grid grid-cols-6 gap-6">
-          {riskData.risk_profiles.map((item, index) => {
-            const Icon = RiskProfileIcon[index];
+          {sortedProfiles.map((item) => {
+            const Icon = RiskProfileIcon[item.metric_name];
+            const isPriority = PRIORITY_METRICS.includes(item.metric_name);
             return (
-              <div key={item.metric_name} className="min-w-0">
+              <div
+                key={item.metric_name}
+                className={clsx(
+                  "min-w-0",
+                  isPriority &&
+                    "-m-2 rounded-lg bg-black/[0.04] p-2 dark:bg-white/8",
+                )}
+              >
                 <div className="flex items-start gap-2">
-                  <Icon width={16} height={16} className="shrink-0" />
+                  {Icon ? (
+                    <Icon width={16} height={16} className="shrink-0" />
+                  ) : null}
 
                   <div>
-                    <div className="text-[18px] leading-none font-medium">
+                    <div
+                      className={clsx(
+                        "text-[18px] leading-none",
+                        isPriority ? "font-bold" : "font-medium",
+                      )}
+                    >
                       {item.score ?? "-"}/{item.max_score}
                       <Tooltip
                         text={item.content}
@@ -96,7 +124,14 @@ export default function RiskPanel({
                       </Tooltip>
                     </div>
 
-                    <div className="mt-1 text-[13px] leading-snug text-black/50 dark:text-white/50">
+                    <div
+                      className={clsx(
+                        "mt-1 text-[13px] leading-snug",
+                        isPriority
+                          ? "font-bold text-black dark:text-white"
+                          : "text-black/50 dark:text-white/50",
+                      )}
+                    >
                       {item.metric_name}
                     </div>
                   </div>

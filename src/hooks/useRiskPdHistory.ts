@@ -5,7 +5,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { UTCTimestamp } from "lightweight-charts";
 
-import { assetColors } from "@/app/(homepage)/components/RiskPricing/constants";
+import { buildAssetColorMap } from "@/app/(homepage)/components/RiskPricing/constants";
 
 import {
   buildGrid,
@@ -102,9 +102,13 @@ export const useRiskPdHistory = (enabled: boolean) => {
       }
     }
 
+    // Same asset list, same order as the bars, so a line and its bar share a
+    // colour.
+    const colorOf = buildAssetColorMap(assets.symbols);
+
     return assets.symbols.map((symbol, index) => ({
       symbol,
-      color: assetColors[index % assetColors.length],
+      color: colorOf.get(symbol)!,
       data: resampled.times.map((time, t) => ({
         time: time as UTCTimestamp,
         // Same conversion the bars use, so the last point lands on the bar value.

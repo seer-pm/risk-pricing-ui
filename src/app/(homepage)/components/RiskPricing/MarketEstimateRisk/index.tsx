@@ -13,6 +13,7 @@ type MarketEstimateRiskProps = {
   colorOf: Map<string, string>;
   maxRisk?: number;
   noToAllProbability?: number;
+  noToAllQuarterlyProbability?: number;
 };
 
 export default function MarketEstimateRisk({
@@ -20,6 +21,7 @@ export default function MarketEstimateRisk({
   colorOf,
   maxRisk = 100,
   noToAllProbability,
+  noToAllQuarterlyProbability,
 }: MarketEstimateRiskProps) {
   /**
    * Log scale mapping
@@ -217,9 +219,17 @@ export default function MarketEstimateRisk({
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🛡️</span>
 
-                  <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                    {noToAllProbability}%
-                  </span>
+                  <div className="flex flex-col items-end leading-tight">
+                    <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+                      {noToAllProbability}%{" "}
+                      <span className="text-xs font-semibold">(Ann.)</span>
+                    </span>
+                    {noToAllQuarterlyProbability !== undefined && (
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-500">
+                        {noToAllQuarterlyProbability}% (Quart.)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

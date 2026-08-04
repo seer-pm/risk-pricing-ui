@@ -13,6 +13,70 @@ export const assetColors = [
   "#f97316",
 ];
 
+export type AssetCategoryId = "eth" | "usd" | "btc" | "funds";
+
+type AssetCategory = {
+  id: AssetCategoryId;
+  label: string;
+  match: (symbol: string) => boolean;
+  color: string;
+};
+
+/**
+ * Assets are grouped by what they are pegged to, and every member of a group
+ * shares its colour - the list can grow to any length, so a colour identifies
+ * the category rather than the individual asset. Order matters: the first
+ * match wins, and "Funds Based" is the catch-all.
+ */
+export const ASSET_CATEGORIES: AssetCategory[] = [
+  {
+    id: "eth",
+    label: "ETH Based",
+    match: (symbol) => /eth/i.test(symbol),
+    color: "#2563eb",
+  },
+  {
+    id: "usd",
+    label: "USD Based",
+    match: (symbol) => /usd/i.test(symbol),
+    color: "#16a34a",
+  },
+  {
+    id: "btc",
+    label: "BTC Based",
+    match: (symbol) => /btc/i.test(symbol),
+    color: "#ea580c",
+  },
+  {
+    id: "funds",
+    label: "Funds Based",
+    match: () => true,
+    color: "#9333ea",
+  },
+];
+
+export const getAssetCategory = (symbol: string): AssetCategory =>
+  ASSET_CATEGORIES.find(({ match }) => match(symbol)) ??
+  ASSET_CATEGORIES[ASSET_CATEGORIES.length - 1];
+
+/** symbol -> its category colour. */
+export const buildAssetColorMap = (symbols: string[]): Map<string, string> =>
+  new Map(symbols.map((symbol) => [symbol, getAssetCategory(symbol).color]));
+
+/**
+ * Credora's two headline metrics: shown first and emphasised in the risk panel.
+ */
+export const PRIORITY_METRICS = ["Asset Quality", "Protocol Security"];
+
+/**
+ * "No To All" is not an asset and its slider does not read as a PD - a high
+ * value there is the good outcome. It gets the emerald of its summary card in
+ * the market estimate, kept clear of every category colour.
+ */
+export const NO_TO_ALL_COLOR = "#059669";
+/** Filled slider track for "No To All" (assets use a pale green). */
+export const NO_TO_ALL_TRACK_COLOR = "#A7F3D0";
+
 type Zone = {
   label: string;
   emoji: string;
@@ -57,6 +121,12 @@ export const zoneAxis = zones
 
 export const MARKET_PD_TOOLTIP =
   "The market's current consensus on the annualized probability this asset defaults, implied by current trading prices.";
+
+// "No To All" is the opposite of a PD: it pays out when nothing defaults, so it
+// needs its own caption and explanation rather than the per-asset one.
+export const NO_TO_ALL_LABEL = "Market Estimate (Ann.)";
+export const NO_TO_ALL_TOOLTIP =
+  "The market's current consensus on the annualized probability that none of the listed assets default, implied by current trading prices.";
 export const BLOCK_EXPLORER_URLS: Partial<Record<number, string>> = {
   [gnosis.id]: "https://gnosisscan.io",
   [mainnet.id]: "https://etherscan.io",

@@ -10,8 +10,9 @@ import {
 
 const CREDORA_GRAPHQL_URL = "https://api.staging.credora.io/graphql";
 
-// Canonical ordering so risk_profiles line up with RiskProfileIcon by index,
-// same as the display_order values in the hardcoded RiskAssetDetailsMapping.
+// Canonical ordering, same as the display_order values in the hardcoded
+// RiskAssetDetailsMapping. The risk panel reorders these for display, so this
+// is only the baseline order; icons are keyed by metric name.
 const METRIC_ORDER = [
   "Asset Quality",
   "Governance",

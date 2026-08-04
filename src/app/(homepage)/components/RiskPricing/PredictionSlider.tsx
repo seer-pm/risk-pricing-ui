@@ -20,7 +20,15 @@ import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
-import { MARKET_PD_TOOLTIP, zoneAxis, zones } from "./constants";
+import {
+  MARKET_PD_TOOLTIP,
+  NO_TO_ALL_COLOR,
+  NO_TO_ALL_LABEL,
+  NO_TO_ALL_TOOLTIP,
+  NO_TO_ALL_TRACK_COLOR,
+  zoneAxis,
+  zones,
+} from "./constants";
 import { interpolateColor } from "./utils";
 
 const LoadingSkeleton: React.FC = () => (
@@ -36,6 +44,17 @@ const LoadingSkeleton: React.FC = () => (
   </div>
 );
 const maxValue = 100;
+
+// How close (in percent of track width) the prediction has to get to the market
+// marker before the marker slips out of the way of the slider's own value label.
+// futarchy-ui uses 5; ours needs more because the pill stretches to the width of
+// the "Market PD (Ann.)" caption (~115px on a 1000px track = 5.75% per side),
+// and the value label adds ~2.5% more before the two actually touch.
+const NEAR_MARKET_THRESHOLD_PERCENT = 9;
+
+// How far the marker slips down. Hiding the 36px stem already drops the pill to
+// just under the track; this clears the thumb on top of that.
+const MARKET_PIN_SLIP_DISTANCE = "32px";
 
 // ---------------------------------------------------------------------------
 // Helpers — extracted outside the component so they never re-create.
@@ -60,7 +79,11 @@ const logFromScaled = (scaled: number) => {
 
 const ZoneBar = React.memo(function ZoneBar() {
   return (
-    <div className="mt-3 flex h-12 overflow-visible rounded-xl">
+    // mt-12 (not mt-3): when the prediction comes near the market, the marker
+    // slips 32px below the track. This gap is the room it lands in — a smaller
+    // one and the pill/caption would cover the emoji bubbles, which themselves
+    // poke 16px above the bar.
+    <div className="mt-14 flex h-12 overflow-visible rounded-xl">
       {zones.map((zone) => {
         const width = logScale(zone.to) - logScale(zone.from);
         return (
@@ -128,6 +151,16 @@ const PredictionSlider = ({
       (state) =>
         (state.riskPredictions[outcome.outcomeId] ?? outcome.probability) * 100,
       [outcome.outcomeId, outcome.probability],
+    ),
+  );
+
+  // Whether the user has ever committed a prediction for this outcome. Without
+  // it the marker would sit permanently slipped down on first paint, when the
+  // thumb still rests exactly on the market value.
+  const hasUserPrediction = useRiskPredictionStore(
+    useCallback(
+      (state) => state.riskPredictions[outcome.outcomeId] !== undefined,
+      [outcome.outcomeId],
     ),
   );
 
@@ -202,11 +235,21 @@ const PredictionSlider = ({
 
   const theme = useMemo(
     () => ({
-      sliderColor: "#D2FFDC",
-      thumbColor: "#D2FFDC",
+      sliderColor: isNoToAll ? NO_TO_ALL_TRACK_COLOR : "#D2FFDC",
+      thumbColor: isNoToAll ? NO_TO_ALL_TRACK_COLOR : "#D2FFDC",
     }),
-    [],
+    [isNoToAll],
   );
+
+  // Compared in SCALED space (0..100 = percent of track width) rather than in
+  // probability space: the track is log-scaled, so only the scaled distance
+  // tells us whether the two labels are about to collide on screen.
+  const isPredictionNearMarket =
+    Math.abs(scale(displayValue) - scale(marketPercent)) <=
+    NEAR_MARKET_THRESHOLD_PERCENT;
+
+  const shouldRepositionMarketPin =
+    isPredictionNearMarket && (draftValue !== null || hasUserPrediction);
 
   if (!mounted) return <LoadingSkeleton />;
 
@@ -217,62 +260,17 @@ const PredictionSlider = ({
     // marker away from the track. Insetting here keeps the marker exactly on
     // its value while giving the centred "Market PD (Ann.)" label room to stay
     // inside the accordion body, which is overflow-hidden for its animation.
-    <div className="w-full px-10">
+    <div className={clsx("w-full px-10", isNoToAll && "pb-10")}>
+      {/* Positioning context for the marker only — the ZoneBar and Axis stay
+          outside it so the marker's `bottom-0` means "bottom of the track box"
+          rather than "bottom of the whole column". */}
       <div className="relative w-full">
-        {/* Market-probability marker (does not move while dragging) */}
-        {/* Raised 28px above the original -40px: the pill used to sit at
-            -24..-2, right on top of the Slider's own bold value label at
-            -23..-3, hiding it whenever the prediction is near the market.
-            The stem grows by the same 28px so it still lands on the track. */}
-        <div
-          className="pointer-events-none absolute top-[-68px] z-20"
-          style={{
-            left: `${scale(marketPercent)}%`,
-            transform: "translateX(-50%)",
-          }}
-        >
-          {/* pointer-events-auto: the marker wrapper disables pointer events so
-            it never blocks the slider, but the tooltip still needs hover. */}
-          <div className="pointer-events-auto flex items-center justify-center whitespace-nowrap">
-            <label className="text-klerosUIComponentsPrimaryText text-xs">
-              Market PD (Ann.)
-            </label>
-            <WithHelpTooltip tooltipMsg={MARKET_PD_TOOLTIP} place="top" />
-          </div>
-
-          <div
-            className={clsx("rounded-base px-2 py-0.75 text-center text-xs")}
-            style={{
-              backgroundColor: isNoToAll ? "#7bcbff" : color,
-              color: getReadableTextColor(isNoToAll ? "#7bcbff" : color),
-            }}
-          >
-            {`${marketPercent.toFixed(3)}%`}
-          </div>
-
-          {/* One unbroken line from the pill down over the track and thumb.
-              Where it meets the Slider's bold value label, that label masks it
-              with the card background — see the #slider-label rules below. */}
-          <span className="bg-klerosUIComponentsPrimaryText absolute top-full left-1/2 h-16 w-0.75 -translate-x-1/2 rounded-b-full" />
-        </div>
-
         {/* Slider */}
         <Slider
           className={clsx(
             "w-full",
             "[&_#slider-label]:!text-klerosUIComponentsPrimaryText",
             "[&_#slider-label]:font-semibold",
-
-            // The market marker's stem passes behind this label. Give the
-            // label the card's own background so it masks the line rather than
-            // being struck through by it. The z-index has to go on the thumb
-            // wrapper (the label's direct parent), not the label: the wrapper
-            // is a stacking context, so a z-index on the label alone can never
-            // rise above the z-20 marker outside it.
-            "[&_div:has(>#slider-label)]:z-30",
-            "[&_#slider-label]:bg-klerosUIComponentsLightBackground",
-            "[&_#slider-label]:rounded-base",
-            "[&_#slider-label]:px-1",
 
             // Thumb
             "[&_[role=slider]]:border-4",
@@ -294,9 +292,63 @@ const PredictionSlider = ({
           theme={theme}
         />
 
-        {!isNoToAll && <ZoneBar />}
-        {!isNoToAll && <Axis />}
+        {/* Market-probability marker (does not move while dragging).
+
+            At rest it sits just above the track with its stem crossing it, and
+            it covers the Slider's own bold value label — the thumb starts on
+            the market value, so there is nothing to read there anyway. Once the
+            user drags and the prediction comes within
+            NEAR_MARKET_THRESHOLD_PERCENT of the market, the whole group slips
+            down (transition-transform, 250ms from the Kleros theme), the stem
+            hides and the caption flips below the pill, freeing that space.
+
+            Rendered after the Slider so it paints on top of it: both are
+            positioned with z-index auto, so DOM order decides. */}
+        <div
+          className={clsx(
+            "pointer-events-none absolute bottom-0 flex flex-col transition-transform",
+            shouldRepositionMarketPin && "flex-col-reverse",
+          )}
+          style={{
+            left: `${scale(marketPercent)}%`,
+            transform: `translateX(-50%) translateY(${
+              shouldRepositionMarketPin ? MARKET_PIN_SLIP_DISTANCE : "0"
+            })`,
+          }}
+        >
+          {/* pointer-events-auto: the marker wrapper disables pointer events so
+            it never blocks the slider, but the tooltip still needs hover. */}
+          <div className="pointer-events-auto flex items-center justify-center whitespace-nowrap">
+            <label className="text-klerosUIComponentsPrimaryText text-xs">
+              {isNoToAll ? NO_TO_ALL_LABEL : "Market PD (Ann.)"}
+            </label>
+            <WithHelpTooltip
+              tooltipMsg={isNoToAll ? NO_TO_ALL_TOOLTIP : MARKET_PD_TOOLTIP}
+              place="top"
+            />
+          </div>
+
+          <div
+            className={clsx("rounded-base px-2 py-0.75 text-center text-xs")}
+            style={{
+              backgroundColor: isNoToAll ? NO_TO_ALL_COLOR : color,
+              color: getReadableTextColor(isNoToAll ? NO_TO_ALL_COLOR : color),
+            }}
+          >
+            {`${marketPercent.toFixed(3)}%`}
+          </div>
+
+          <span
+            className={clsx(
+              "bg-klerosUIComponentsPrimaryText mx-auto block h-9 w-0.75",
+              shouldRepositionMarketPin ? "hidden" : "rounded-b-full",
+            )}
+          />
+        </div>
       </div>
+
+      {!isNoToAll && <ZoneBar />}
+      {!isNoToAll && <Axis />}
     </div>
   );
 };

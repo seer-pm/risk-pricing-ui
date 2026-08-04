@@ -990,11 +990,13 @@ export const RiskAssetAddresses = [
   "0x9a005c9a89bd72a4bd27721e7a09a3c11d2b03c4",
 ];
 
-export const RiskProfileIcon = [
-  LucideGem,
-  LucideShield,
-  LucideLandMark,
-  LucideActivity,
-  LucideDatabase,
-  LucideScale,
-];
+// Keyed by metric name rather than position: the risk panel reorders metrics
+// for display, and an asset can report metrics outside this set.
+export const RiskProfileIcon: Record<string, typeof LucideGem | undefined> = {
+  "Asset Quality": LucideGem,
+  Governance: LucideShield,
+  "Peg Track Record": LucideLandMark,
+  "Protocol Security": LucideActivity,
+  "Reserves Management": LucideDatabase,
+  "Regulatory/Legal Profile": LucideScale,
+};

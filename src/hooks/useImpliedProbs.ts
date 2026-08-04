@@ -43,6 +43,13 @@ export function quarterlyToYearly(quarterlyPD: number): number {
   return 1 - (1 - quarterlyPD) ** 4;
 }
 
+// "No To All" is a survival probability (no listed asset defaults), not a PD,
+// so it converts as the 4th root of the yearly figure - running it through
+// yearlyToQuarterly would answer a different question.
+export function yearlySurvivalToQuarterly(yearlySurvival: number): number {
+  return yearlySurvival ** (1 / 4);
+}
+
 export function computePrices(p: number[]) {
   const n = p.length;
   let priceY = 1;

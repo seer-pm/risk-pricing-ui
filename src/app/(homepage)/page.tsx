@@ -11,7 +11,10 @@ import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import { TradeWalletProvider } from "@/context/TradeWalletContext";
 import { isTwoStringsEqual } from "@/hooks/liquidity/utils";
-import { yearlyToQuarterly } from "@/hooks/useImpliedProbs";
+import {
+  yearlySurvivalToQuarterly,
+  yearlyToQuarterly,
+} from "@/hooks/useImpliedProbs";
 import { useMarketData } from "@/hooks/useMarketData";
 
 import FirstVisitGuide from "@/components/Guides/FirstVisit";
@@ -84,6 +87,17 @@ export default function Home() {
                     data.outcomes.at(-2)?.probability
                       ? Number(
                           (data.outcomes.at(-2)!.probability * 100).toFixed(3),
+                        )
+                      : undefined
+                  }
+                  noToAllQuarterlyProbability={
+                    data.outcomes.at(-2)?.probability
+                      ? Number(
+                          (
+                            yearlySurvivalToQuarterly(
+                              data.outcomes.at(-2)!.probability,
+                            ) * 100
+                          ).toFixed(3),
                         )
                       : undefined
                   }

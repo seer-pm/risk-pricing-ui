@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import { useTradeWallet } from "@/context/TradeWalletContext";
+import { useAssetColorMap } from "@/hooks/useAssetColorMap";
 import { useTokensBalances } from "@/hooks/useTokenBalances";
 
 import { assetColors } from "../../../RiskPricing/constants";
@@ -15,6 +16,7 @@ import ProjectAmount from "./ProjectAmount";
 const ProjectBalances: React.FC = () => {
   const { tradeExecutor } = useTradeWallet();
   const outcomes = useRiskPredictionStore((state) => state.outcomes);
+  const colorOf = useAssetColorMap();
   const { data: outcomeBalances } = useTokensBalances(
     tradeExecutor,
     outcomes.map(({ outcomeId }) => outcomeId),
@@ -37,12 +39,14 @@ const ProjectBalances: React.FC = () => {
                 "grid w-full grid-cols-[repeat(auto-fit,minmax(200px,260px))] place-content-center gap-4",
               )}
             >
-              {outcomes.map(({ symbol, outcomeIndex }, i) => (
+              {outcomes.map(({ symbol, outcome, outcomeIndex }, i) => (
                 <ProjectAmount
                   key={symbol}
                   {...{
                     name: symbol,
-                    color: assetColors[outcomeIndex % assetColors.length],
+                    color:
+                      colorOf.get(outcome) ??
+                      assetColors[outcomeIndex % assetColors.length],
                   }}
                   balance={outcomeBalances?.[i]}
                 />

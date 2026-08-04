@@ -2,6 +2,7 @@ import { Tooltip } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Image from "next/image";
 
+import { useAssetColorMap } from "@/hooks/useAssetColorMap";
 import { useRawMarketData } from "@/hooks/useMarketData";
 import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 
@@ -40,6 +41,7 @@ const defaultDefinition = (
 
 const Header: React.FC = () => {
   const { data } = useRawMarketData();
+  const colorOf = useAssetColorMap();
   const {
     isResolved,
     payoutFractions,
@@ -126,7 +128,8 @@ const Header: React.FC = () => {
           </h2>
           <div className="flex flex-row flex-wrap items-center gap-2">
             {winningOutcomes.map(({ outcome, index, payoutFraction }) => {
-              const color = assetColors[index % assetColors.length];
+              const color =
+                colorOf.get(outcome) ?? assetColors[index % assetColors.length];
               return (
                 <div
                   className={cn(
