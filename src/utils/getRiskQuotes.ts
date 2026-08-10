@@ -14,7 +14,7 @@ import {
 
 import { getMinimumAmountOut, getSwaprQuote } from "./swapr";
 
-import { minBigIntArray } from ".";
+import { minBigIntArray, toTokenAmountString } from ".";
 
 export type GetQuoteProps = {
   account: Address;
@@ -39,18 +39,19 @@ export const getRiskQuotes = async ({
       // if underlying balance is non-zero, then the previous step will have minted this much tokens already
       // so we have that available, hence added here
       const availableSellVolume = outcome.underlyingBalance + outcome.balance;
-
       // calculating the max amount of tokens we can sell
-      const volume =
-        parseUnits(
-          outcome.volumeUntilPrice.outcomeVolume.toString(),
-          DECIMALS,
-        ) > availableSellVolume
-          ? formatUnits(availableSellVolume, DECIMALS)
-          : outcome.volumeUntilPrice.outcomeVolume.toString();
-      if (Number(volume) < VOLUME_MIN) {
+      const availableAsNumber = Number(
+        formatUnits(availableSellVolume, DECIMALS),
+      );
+      const volumeNumber = Math.min(
+        outcome.volumeUntilPrice.outcomeVolume,
+        availableAsNumber,
+      );
+      if (volumeNumber < VOLUME_MIN) {
         return promises;
       }
+
+      const volume = toTokenAmountString(volumeNumber);
 
       promises.push(
         getSwaprQuote({
@@ -128,22 +129,30 @@ export const getRiskQuotes = async ({
     (promises, outcome) => {
       // here we allocate the collateral based on the weight of prediction,
       // so if an outcome has high difference they get more collateral to utilize
+      const sumBuyUnits = parseUnits(
+        toTokenAmountString(sumBuyDifference),
+        DECIMALS,
+      );
       const availableBuyVolume =
-        (parseUnits(outcome.difference.toString(), DECIMALS) *
-          bufferedCollateral) /
-        parseUnits(sumBuyDifference.toString(), DECIMALS);
+        sumBuyUnits === 0n
+          ? 0n
+          : (parseUnits(toTokenAmountString(outcome.difference), DECIMALS) *
+              bufferedCollateral) /
+            sumBuyUnits;
 
-      const volume =
-        // note that here we use collateral volume, instead of sellToken volume like above
-        parseUnits(
-          outcome.volumeUntilPrice.collateralVolume.toString(),
-          DECIMALS,
-        ) > availableBuyVolume
-          ? formatUnits(availableBuyVolume, DECIMALS)
-          : outcome.volumeUntilPrice.collateralVolume.toString();
-      if (Number(volume) < VOLUME_MIN) {
+      // note that here we use collateral volume, instead of sellToken volume like above
+      const availableBuyAsNumber = Number(
+        formatUnits(availableBuyVolume, DECIMALS),
+      );
+      const volumeNumber = Math.min(
+        outcome.volumeUntilPrice.collateralVolume,
+        availableBuyAsNumber,
+      );
+      if (volumeNumber < VOLUME_MIN) {
         return promises;
       }
+
+      const volume = toTokenAmountString(volumeNumber);
 
       // get quote
       promises.push(

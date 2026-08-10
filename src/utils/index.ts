@@ -3,6 +3,8 @@ import { twMerge } from "tailwind-merge";
 import { Address, formatUnits, type Hex } from "viem";
 import { type UseSimulateContractReturnType } from "wagmi";
 
+import { DECIMALS } from "@/consts";
+
 type ExtendedWagmiError = UseSimulateContractReturnType["error"] & {
   shortMessage?: string;
   metaMessages?: string[];
@@ -146,6 +148,19 @@ export function minBigIntArray(values: bigint[]): bigint {
 export function clamp(value: number, min: number, max: number): number {
   if (Number.isNaN(value)) return min;
   return Math.min(Math.max(value, min), max);
+}
+
+/**
+ * Decimal string safe for parseUnits / Swapr (never scientific notation).
+ * e.g. 8.4e-7 → "0.000000840094292439" rather than "8.4e-7".
+ */
+export function toTokenAmountString(
+  value: number,
+  decimals = DECIMALS,
+): string {
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  const fixed = value.toFixed(decimals);
+  return fixed.replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "") || "0";
 }
 
 /**
