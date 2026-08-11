@@ -1,4 +1,4 @@
-import { Address, erc20Abi, type Abi } from "viem";
+import { Address, erc20Abi, parseUnits, type Abi } from "viem";
 import { gnosis } from "viem/chains";
 
 import { CondtionalRouterAbi } from "@/abi/ConditionalRouter";
@@ -82,6 +82,8 @@ export const collateral = {
 };
 export const DECIMALS = 18;
 export const VOLUME_MIN = 0.001;
+/** VOLUME_MIN in wei, so volume thresholds can be compared without leaving bigint */
+export const VOLUME_MIN_WEI = parseUnits(String(VOLUME_MIN), DECIMALS);
 /** Buffer applied to collateral allocation for batch predictions to account
  *  for swap slippage chain effects (0.98 = 2% safety margin) */
 export const PREDICTION_SLIPPAGE_BUFFER = 0.98;

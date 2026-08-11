@@ -10,6 +10,7 @@ import {
   DEFAULT_CHAIN,
   PREDICTION_SLIPPAGE_BUFFER,
   VOLUME_MIN,
+  VOLUME_MIN_WEI,
 } from "@/consts";
 
 import { getMinimumAmountOut, getSwaprQuote } from "./swapr";
@@ -39,19 +40,23 @@ export const getRiskQuotes = async ({
       // if underlying balance is non-zero, then the previous step will have minted this much tokens already
       // so we have that available, hence added here
       const availableSellVolume = outcome.underlyingBalance + outcome.balance;
-      // calculating the max amount of tokens we can sell
-      const availableAsNumber = Number(
-        formatUnits(availableSellVolume, DECIMALS),
+      // calculating the max amount of tokens we can sell.
+      // clamped in wei: routing the balance through a float would round it up
+      // and make the swap pull more tokens than the wallet actually holds
+      const volumeUntilPriceWei = parseUnits(
+        toTokenAmountString(outcome.volumeUntilPrice.outcomeVolume),
+        DECIMALS,
       );
-      const volumeNumber = Math.min(
-        outcome.volumeUntilPrice.outcomeVolume,
-        availableAsNumber,
-      );
-      if (volumeNumber < VOLUME_MIN) {
+      const sellVolumeWei =
+        volumeUntilPriceWei < availableSellVolume
+          ? volumeUntilPriceWei
+          : availableSellVolume;
+      if (sellVolumeWei < VOLUME_MIN_WEI) {
         return promises;
       }
 
-      const volume = toTokenAmountString(volumeNumber);
+      // formatUnits is an exact round-trip back through parseUnits
+      const volume = formatUnits(sellVolumeWei, DECIMALS);
 
       promises.push(
         getSwaprQuote({
@@ -141,18 +146,19 @@ export const getRiskQuotes = async ({
             sumBuyUnits;
 
       // note that here we use collateral volume, instead of sellToken volume like above
-      const availableBuyAsNumber = Number(
-        formatUnits(availableBuyVolume, DECIMALS),
+      const volumeUntilPriceWei = parseUnits(
+        toTokenAmountString(outcome.volumeUntilPrice.collateralVolume),
+        DECIMALS,
       );
-      const volumeNumber = Math.min(
-        outcome.volumeUntilPrice.collateralVolume,
-        availableBuyAsNumber,
-      );
-      if (volumeNumber < VOLUME_MIN) {
+      const buyVolumeWei =
+        volumeUntilPriceWei < availableBuyVolume
+          ? volumeUntilPriceWei
+          : availableBuyVolume;
+      if (buyVolumeWei < VOLUME_MIN_WEI) {
         return promises;
       }
 
-      const volume = toTokenAmountString(volumeNumber);
+      const volume = formatUnits(buyVolumeWei, DECIMALS);
 
       // get quote
       promises.push(

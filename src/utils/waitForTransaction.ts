@@ -38,7 +38,7 @@ export const waitForTransaction = async (
     });
 
     if (receipt.status === "reverted") {
-      const error = new Error("Transaction was reverted.");
+      const error = new Error(`Transaction was reverted. (${hash})`);
       return { status: false, hash, error };
     }
 

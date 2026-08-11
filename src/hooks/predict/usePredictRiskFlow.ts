@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Address } from "viem";
@@ -64,6 +64,12 @@ export function usePredictRiskFlow({
 }: UsePredictAllFlowArgs) {
   const queryClient = useQueryClient();
   const { state, setFlag, reset } = usePredictState();
+  // synchronous in-flight guard. `isSending` disables the button, but it is
+  // reducer state: it lags the click, and it is lost if the modal remounts.
+  // A second prediction started while the first is in flight gets quoted
+  // against pool state the first one is about to invalidate, so its buy leg
+  // reverts on slippage after the whole batch has already executed.
+  const isSubmittingRef = useRef(false);
 
   const predictions = useRiskPredictionStore((state) => state.riskPredictions);
   const outcomes = useRiskPredictionStore((state) => state.outcomes);
@@ -119,6 +125,7 @@ export function usePredictRiskFlow({
 
   const handlePredict = async () => {
     if (isUndefined(account) || isUndefined(checkTradeExecutorResult)) return;
+    if (isSubmittingRef.current) return;
 
     const snapshot: {
       initialSDAIDeposit?: bigint;
@@ -141,6 +148,7 @@ export function usePredictRiskFlow({
 
     setFlag("error", undefined);
     setFlag("isSending", true);
+    isSubmittingRef.current = true;
 
     try {
       let tradeWallet = tradeExecutor;
@@ -306,6 +314,7 @@ export function usePredictRiskFlow({
       setTimeout(() => reset(), 10000);
     } finally {
       setFlag("isSending", false);
+      isSubmittingRef.current = false;
     }
   };
 
