@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 
+import { sortOutcomesByCategory } from "@/app/(homepage)/components/RiskPricing/constants";
 import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import { useAssetColorMap } from "@/hooks/useAssetColorMap";
@@ -23,6 +24,11 @@ const RiskMarketHeader: React.FC = () => {
     (state) => state.removePrediction,
   );
   const colorOf = useAssetColorMap();
+  // Same category grouping as the sliders this list mirrors.
+  const sortedOutcomes = useMemo(
+    () => sortOutcomesByCategory(outcomes, ({ outcome }) => outcome),
+    [outcomes],
+  );
   const hasPredictions = Object.entries(predictions).some(
     ([predictionOutcomeId, prediction]) => {
       const marketProbability = outcomes.find(
@@ -51,7 +57,7 @@ const RiskMarketHeader: React.FC = () => {
         ) : null}
         <div className="flex w-full flex-col gap-0.25">
           <AnimatePresence>
-            {outcomes.slice(0, -1).map((outcome) => {
+            {sortedOutcomes.slice(0, -1).map((outcome) => {
               const prediction = predictions[outcome.outcomeId];
               if (!prediction || prediction === outcome.probability) return;
               return (

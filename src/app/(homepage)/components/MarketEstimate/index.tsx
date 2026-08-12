@@ -20,6 +20,7 @@ import {
   type AssetCategoryId,
   buildAssetColorMap,
   getAssetCategory,
+  sortAssetsByCategory,
 } from "../RiskPricing/constants";
 import MarketEstimateRisk, {
   type AssetRisk,
@@ -130,8 +131,14 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
     [assets, hiddenAssets],
   );
 
+  // The history hook returns series in market order; group them like the bars
+  // so the two views list the same assets in the same order.
   const visibleSeries = useMemo(
-    () => series?.filter((s) => !hiddenAssets.has(s.symbol)) ?? [],
+    () =>
+      sortAssetsByCategory(
+        series?.filter((s) => !hiddenAssets.has(s.symbol)) ?? [],
+        (s) => s.symbol,
+      ),
     [series, hiddenAssets],
   );
 

@@ -2,10 +2,7 @@ export const revalidate = 300;
 
 import { NextResponse } from "next/server";
 
-import {
-  RiskAssetData,
-  RiskProfile,
-} from "@/consts/markets";
+import { RiskAssetData, RiskProfile } from "@/consts/markets";
 
 const CREDORA_GRAPHQL_URL = "https://api.staging.credora.io/graphql";
 
@@ -131,11 +128,16 @@ function toRiskProfiles(
   }));
 }
 
-function averageScore(profiles: RiskProfile[]): number {
+/**
+ * Null rather than 0 when nothing is scored: Credora publishes the rating for
+ * many assets before the metric breakdown, and a computed 0 was rendered as if
+ * the asset had actually scored zero.
+ */
+function averageScore(profiles: RiskProfile[]): number | null {
   const scores = profiles
     .map((p) => p.score)
     .filter((s): s is number => s !== null && s !== undefined);
-  if (!scores.length) return 0;
+  if (!scores.length) return null;
   const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length;
   return Math.round(avg * 100) / 100;
 }

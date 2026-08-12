@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useMemo } from "react";
 
 import { CustomAccordion } from "@kleros/ui-components-library";
 import clsx from "clsx";
 
+import { sortOutcomesByCategory } from "@/app/(homepage)/components/RiskPricing/constants";
 import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import { useTradeWallet } from "@/context/TradeWalletContext";
@@ -18,6 +19,19 @@ const ProjectBalances: React.FC = () => {
   const { data: outcomeBalances } = useTokensBalances(
     tradeExecutor,
     outcomes.map(({ outcomeId }) => outcomeId),
+  );
+  // Balances come back in the order they were queried, so each one is carried
+  // on its outcome before the list is grouped by category for display.
+  const rows = useMemo(
+    () =>
+      sortOutcomesByCategory(
+        outcomes.map((outcome, index) => ({
+          ...outcome,
+          balance: outcomeBalances?.[index],
+        })),
+        ({ outcome }) => outcome,
+      ),
+    [outcomes, outcomeBalances],
   );
   return (
     <CustomAccordion
@@ -37,14 +51,14 @@ const ProjectBalances: React.FC = () => {
                 "grid w-full grid-cols-[repeat(auto-fit,minmax(200px,260px))] place-content-center gap-4",
               )}
             >
-              {outcomes.map(({ symbol, outcome }, i) => (
+              {rows.map(({ symbol, outcome, balance }) => (
                 <ProjectAmount
                   key={symbol}
                   {...{
                     name: symbol,
                     color: colorOf(outcome),
                   }}
-                  balance={outcomeBalances?.[i]}
+                  balance={balance}
                 />
               ))}
             </div>

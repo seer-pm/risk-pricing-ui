@@ -4,6 +4,7 @@ import { mainnet } from "viem/chains";
 import { useCredoraAssets } from "@/hooks/useCredoraAssets";
 import { RiskPricingOutcome } from "@/hooks/useMarketData";
 
+import Loader from "@/components/Loader";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import ChartBar from "@/assets/svg/chart-bar.svg";
@@ -25,26 +26,32 @@ export default function RiskPanel({
   outcome: RiskPricingOutcome;
 }) {
   const key = outcome.outcome.toLowerCase();
-  const { data } = useCredoraAssets();
+  const { data, isLoading } = useCredoraAssets();
   const riskData = data?.[key];
 
-  if (!riskData)
+  if (isLoading)
     return (
-      <div className="border-klerosUIComponentsStroke text-klerosUIComponentsSecondaryText w-full rounded-xl border border-dashed px-6 py-8 text-center text-sm">
-        No risk data available for this asset.
+      <div className="flex w-full items-center justify-center py-8">
+        <Loader />
       </div>
     );
 
-  // Credora's headline metrics lead the grid; everything else keeps the order
-  // it arrived in.
-  const sortedProfiles = [...riskData.risk_profiles].sort((a, b) => {
-    const ai = PRIORITY_METRICS.indexOf(a.metric_name);
-    const bi = PRIORITY_METRICS.indexOf(b.metric_name);
-    if (ai === -1 && bi === -1) return 0;
-    if (ai === -1) return 1;
-    if (bi === -1) return -1;
-    return ai - bi;
-  });
+  // Credora publishes ratings ahead of the metric breakdown, and lists some of
+  // the market's assets not at all, so every block below is drawn only when it
+  // has something to say. The Consensus PD comes from the market rather than
+  // Credora and is always shown.
+  const sortedProfiles = riskData
+    ? // Credora's headline metrics lead the grid; everything else keeps the
+      // order it arrived in.
+      [...riskData.risk_profiles].sort((a, b) => {
+        const ai = PRIORITY_METRICS.indexOf(a.metric_name);
+        const bi = PRIORITY_METRICS.indexOf(b.metric_name);
+        if (ai === -1 && bi === -1) return 0;
+        if (ai === -1) return 1;
+        if (bi === -1) return -1;
+        return ai - bi;
+      })
+    : [];
 
   return (
     <div className="border-klerosUIComponentsStroke bg-klerosUIComponentsWhiteBackground text-klerosUIComponentsPrimaryText w-full max-w-[1080px] rounded-xl border">
@@ -64,73 +71,85 @@ export default function RiskPanel({
       </div>
 
       {/* Score */}
-      <div className="border-b-klerosUIComponentsStroke border-b px-6 py-5">
-        <div className="flex items-center gap-5">
-          <div className="flex size-20 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-3xl font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-            {riskData.metrics_rating}
-          </div>
+      {riskData ? (
+        <div className="border-b-klerosUIComponentsStroke border-b px-6 py-5">
+          <div className="flex items-center gap-5">
+            {riskData.metrics_rating ? (
+              <div className="flex size-20 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-3xl font-semibold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                {riskData.metrics_rating}
+              </div>
+            ) : null}
 
-          <div>
-            <div className="text-2xl leading-none font-semibold">
-              {riskData.rating_type}
-            </div>
+            <div>
+              <div className="text-2xl leading-none font-semibold">
+                {riskData.rating_type || outcome.outcome}
+              </div>
 
-            <div className="text-klerosUIComponentsSecondaryText mt-2 text-sm">
-              {riskData.avg_risk_score}
+              <div className="text-klerosUIComponentsSecondaryText mt-2 text-sm">
+                {riskData.avg_risk_score !== null
+                  ? `Avg. risk score: ${riskData.avg_risk_score}`
+                  : "Metric breakdown not published by Credora yet."}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="border-b-klerosUIComponentsStroke text-klerosUIComponentsSecondaryText border-b px-6 py-5 text-sm">
+          Credora hasn&apos;t published a risk rating for this asset yet.
+        </div>
+      )}
 
       {/* Metrics */}
-      <div className="border-b-klerosUIComponentsStroke border-b px-6 py-5">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-6">
-          {sortedProfiles.map((item) => {
-            const Icon = RiskProfileIcon[item.metric_name];
-            const isPriority = PRIORITY_METRICS.includes(item.metric_name);
-            return (
-              <div
-                key={item.metric_name}
-                className={clsx(
-                  "min-w-0",
-                  isPriority &&
-                    "bg-klerosUIComponentsLightBackground -m-2 rounded-lg p-2",
-                )}
-              >
-                <div className="flex items-start gap-2">
-                  {Icon ? <Icon className="size-4 shrink-0" /> : null}
+      {sortedProfiles.length > 0 ? (
+        <div className="border-b-klerosUIComponentsStroke border-b px-6 py-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 lg:gap-6">
+            {sortedProfiles.map((item) => {
+              const Icon = RiskProfileIcon[item.metric_name];
+              const isPriority = PRIORITY_METRICS.includes(item.metric_name);
+              return (
+                <div
+                  key={item.metric_name}
+                  className={clsx(
+                    "min-w-0",
+                    isPriority &&
+                      "bg-klerosUIComponentsLightBackground -m-2 rounded-lg p-2",
+                  )}
+                >
+                  <div className="flex items-start gap-2">
+                    {Icon ? <Icon className="size-4 shrink-0" /> : null}
 
-                  <div className="min-w-0">
-                    <div
-                      className={clsx(
-                        "flex items-center text-lg leading-none",
-                        isPriority ? "font-bold" : "font-medium",
-                      )}
-                    >
-                      {item.score ?? "-"}/{item.max_score}
-                      <WithHelpTooltip
-                        tooltipMsg={item.content}
-                        place="bottom"
-                      />
-                    </div>
+                    <div className="min-w-0">
+                      <div
+                        className={clsx(
+                          "flex items-center text-lg leading-none",
+                          isPriority ? "font-bold" : "font-medium",
+                        )}
+                      >
+                        {item.score ?? "-"}/{item.max_score}
+                        <WithHelpTooltip
+                          tooltipMsg={item.content}
+                          place="bottom"
+                        />
+                      </div>
 
-                    <div
-                      className={clsx(
-                        "mt-1 text-xs leading-snug",
-                        isPriority
-                          ? "font-bold"
-                          : "text-klerosUIComponentsSecondaryText",
-                      )}
-                    >
-                      {item.metric_name}
+                      <div
+                        className={clsx(
+                          "mt-1 text-xs leading-snug",
+                          isPriority
+                            ? "font-bold"
+                            : "text-klerosUIComponentsSecondaryText",
+                        )}
+                      >
+                        {item.metric_name}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {/* Consensus PD */}
       <div className="px-6 py-5">
@@ -150,40 +169,47 @@ export default function RiskPanel({
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="px-6 pb-6">
-        <div className="bg-klerosUIComponentsLightBackground flex flex-wrap items-center gap-x-8 gap-y-4 rounded-lg px-6 py-5">
-          <a
-            href={`https://app.credora.network/assets/${key}`}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="text-klerosUIComponentsPrimaryBlue flex items-center gap-2 text-base font-medium transition-opacity hover:opacity-80"
-          >
-            View on Credora
-            <ExternalArrow className="size-4" />
-          </a>
+      {/* Footer: nothing to link to when Credora doesn't list the asset. */}
+      {riskData ? (
+        <div className="px-6 pb-6">
+          <div className="bg-klerosUIComponentsLightBackground flex flex-wrap items-center gap-x-8 gap-y-4 rounded-lg px-6 py-5">
+            <a
+              href={`https://app.credora.network/assets/${key}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="text-klerosUIComponentsPrimaryBlue flex items-center gap-2 text-base font-medium transition-opacity hover:opacity-80"
+            >
+              View on Credora
+              <ExternalArrow className="size-4" />
+            </a>
 
-          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="flex items-center gap-3 text-base font-medium">
-              {/* Already a circled check in the theme blue - no wrapper needed. */}
-              <CheckOutline aria-hidden="true" className="size-7 shrink-0" />
-              Ethereum Contract
-            </span>
+            {riskData.address ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="flex items-center gap-3 text-base font-medium">
+                  {/* Already a circled check in the theme blue - no wrapper needed. */}
+                  <CheckOutline
+                    aria-hidden="true"
+                    className="size-7 shrink-0"
+                  />
+                  Ethereum Contract
+                </span>
 
-            <div className="flex min-w-0 items-center">
-              <a
-                className="text-klerosUIComponentsSecondaryText hover:text-klerosUIComponentsPrimaryBlue font-mono text-sm transition-colors"
-                title={riskData.address}
-                href={`${BLOCK_EXPLORER_URLS[mainnet.id]}/address/${riskData.address}`}
-                target="_blank"
-                rel="noreferrer noopener"
-              >
-                {shortenHash(riskData.address)}
-              </a>
-            </div>
+                <div className="flex min-w-0 items-center">
+                  <a
+                    className="text-klerosUIComponentsSecondaryText hover:text-klerosUIComponentsPrimaryBlue font-mono text-sm transition-colors"
+                    title={riskData.address}
+                    href={`${BLOCK_EXPLORER_URLS[mainnet.id]}/address/${riskData.address}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                  >
+                    {shortenHash(riskData.address)}
+                  </a>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -20,7 +20,8 @@ type MarketEstimateRiskProps = {
 
 /**
  * Past this much of the track, the bar-end readout would run off the right
- * edge, so it flips to sit inside the bar instead.
+ * edge, so it flips back over the bar. A flipped readout also moves above the
+ * bar: kept level with it, the bar would strike through both lines.
  */
 const FLIP_LABEL_AFTER_PERCENT = 55;
 
@@ -69,8 +70,9 @@ export default function MarketEstimateRisk({
         </div>
 
         {/* Assets (scrollable; a stable gutter keeps the plot width
-            constant whether or not the scrollbar is visible) */}
-        <div className="[&::-webkit-scrollbar-thumb]:bg-klerosUIComponentsStroke max-h-[28rem] space-y-8 overflow-y-auto [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
+            constant whether or not the scrollbar is visible, and the top
+            padding keeps the first row's raised readout off the clip edge) */}
+        <div className="[&::-webkit-scrollbar-thumb]:bg-klerosUIComponentsStroke max-h-[28rem] space-y-8 overflow-y-auto pt-8 [scrollbar-gutter:stable] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
           {assets.map((asset) => {
             const assetColor = colorOf.get(asset.symbol);
             const widthPercent = logScalePercent(asset.risk);
@@ -139,8 +141,10 @@ export default function MarketEstimateRisk({
                   {/* Annualized / quarterly PD at bar end */}
                   <div
                     className={cn(
-                      "absolute top-1/2 z-10 flex -translate-y-1/2 flex-col leading-tight whitespace-nowrap",
-                      flipLabel ? "-translate-x-full pr-2 text-right" : "pl-2",
+                      "absolute z-10 flex flex-col leading-tight whitespace-nowrap",
+                      flipLabel
+                        ? "bottom-1/2 mb-2.5 -translate-x-full text-right"
+                        : "top-1/2 -translate-y-1/2 pl-2",
                     )}
                     style={{ left: `${widthPercent}%` }}
                   >

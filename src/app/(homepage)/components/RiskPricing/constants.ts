@@ -50,6 +50,45 @@ export const getAssetCategory = (symbol: string): AssetCategory =>
 export const buildAssetColorMap = (symbols: string[]): Map<string, string> =>
   new Map(symbols.map((symbol) => [symbol, getAssetCategory(symbol).color]));
 
+const CATEGORY_RANK = new Map<AssetCategoryId, number>(
+  ASSET_CATEGORIES.map(({ id }, index) => [id, index]),
+);
+
+/**
+ * Groups assets by category in {@link ASSET_CATEGORIES} order, so every list on
+ * the page reads ETH -> USD -> BTC -> Funds. The sort is stable, which keeps
+ * the market's own order inside each group.
+ *
+ * Display-only: the market order is what the trade flow prices against
+ * (usePredictRiskFlow pairs probabilities with outcomes by index), so the
+ * store's outcome list is never reordered.
+ */
+export const sortAssetsByCategory = <T>(
+  items: T[],
+  getSymbol: (item: T) => string,
+): T[] =>
+  [...items].sort(
+    (a, b) =>
+      (CATEGORY_RANK.get(getAssetCategory(getSymbol(a)).id) ?? 0) -
+      (CATEGORY_RANK.get(getAssetCategory(getSymbol(b)).id) ?? 0),
+  );
+
+/**
+ * {@link sortAssetsByCategory} for a full outcome list: the last two outcomes
+ * are "No To All" and "Invalid" rather than assets, and every caller slices
+ * them off by position, so they stay pinned to the end.
+ */
+export const sortOutcomesByCategory = <T>(
+  outcomes: T[],
+  getSymbol: (outcome: T) => string,
+): T[] =>
+  outcomes.length <= 2
+    ? outcomes
+    : [
+        ...sortAssetsByCategory(outcomes.slice(0, -2), getSymbol),
+        ...outcomes.slice(-2),
+      ];
+
 /**
  * Credora's two headline metrics: shown first and emphasised in the risk panel.
  */

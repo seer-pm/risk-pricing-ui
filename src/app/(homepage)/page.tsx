@@ -30,6 +30,7 @@ import PredictionsCsvButton from "./components/ParticipateSection/CsvUpload/Pred
 import PredictAll from "./components/PredictAll";
 import QuarterTabs from "./components/QuarterTabs";
 import RiskPricing from "./components/RiskPricing";
+import { sortOutcomesByCategory } from "./components/RiskPricing/constants";
 
 export default function Home() {
   const { data, isLoading, isError, refetch, isRefetching } = useMarketData();
@@ -50,6 +51,17 @@ export default function Home() {
       },
     );
   }, [predictions, data?.outcomes]);
+
+  // Every list on the page plots the same assets, so they are grouped by
+  // category once here and shared. "No To All" and "Invalid" stay pinned to the
+  // end, which is what the slice(0, -2) / at(-2) reads below rely on.
+  const sortedOutcomes = useMemo(
+    () =>
+      data?.outcomes
+        ? sortOutcomesByCategory(data.outcomes, ({ outcome }) => outcome)
+        : undefined,
+    [data?.outcomes],
+  );
 
   const [isOpen, toggleGuide] = useToggle(false);
   const [isOnboardingDone, setOnboardingDone] = useLocalStorage<boolean>(
@@ -87,12 +99,12 @@ export default function Home() {
             </div>
           ) : !isLoading ? (
             <>
-              {data?.outcomes ? (
+              {sortedOutcomes ? (
                 // Values are passed through raw: formatPd owns the rounding, so
                 // pre-rounding here would strip trailing zeros and leave the
                 // column of PDs ragged.
                 <MarketEstimate
-                  assets={data.outcomes.slice(0, -2).map((outcome) => {
+                  assets={sortedOutcomes.slice(0, -2).map((outcome) => {
                     return {
                       symbol: outcome.outcome,
                       risk: outcome.probability * 100,
@@ -101,14 +113,14 @@ export default function Home() {
                     };
                   })}
                   noToAllProbability={
-                    data.outcomes.at(-2)?.probability
-                      ? data.outcomes.at(-2)!.probability * 100
+                    sortedOutcomes.at(-2)?.probability
+                      ? sortedOutcomes.at(-2)!.probability * 100
                       : undefined
                   }
                   noToAllQuarterlyProbability={
-                    data.outcomes.at(-2)?.probability
+                    sortedOutcomes.at(-2)?.probability
                       ? yearlySurvivalToQuarterly(
-                          data.outcomes.at(-2)!.probability,
+                          sortedOutcomes.at(-2)!.probability,
                         ) * 100
                       : undefined
                   }
@@ -126,8 +138,8 @@ export default function Home() {
           <TradeWalletProvider>
             <ParticipateSection />
             <div className="flex flex-col gap-4">
-              {data?.outcomes
-                ? data.outcomes.map((outcome) => {
+              {sortedOutcomes
+                ? sortedOutcomes.map((outcome) => {
                     if (isTwoStringsEqual(outcome.outcome, "invalid"))
                       return null;
                     return (
@@ -135,7 +147,7 @@ export default function Home() {
                         key={outcome.outcomeId}
                         outcome={outcome}
                         isNoToAll={
-                          outcome.outcomeIndex === data!.outcomes!.length - 2
+                          outcome.outcomeIndex === sortedOutcomes.length - 2
                         }
                       />
                     );
