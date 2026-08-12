@@ -12,7 +12,7 @@ import ExternalArrow from "@/assets/svg/external-arrow.svg";
 
 import { formatPd } from "@/utils";
 
-import { RiskAssetDetailsMapping, RiskProfileIcon } from "@/consts/markets";
+import { RiskProfileIcon } from "@/consts/markets";
 
 import { BLOCK_EXPLORER_URLS, PRIORITY_METRICS } from "./constants";
 
@@ -25,14 +25,8 @@ export default function RiskPanel({
   outcome: RiskPricingOutcome;
 }) {
   const key = outcome.outcome.toLowerCase();
-  const fallback = RiskAssetDetailsMapping[key];
-  const address = fallback?.address?.toLowerCase();
-  const { data, isError } = useCredoraAssets();
-  const live = address ? data?.[address] : undefined;
-  const riskData = live ?? fallback;
-  // Falling back to the bundled snapshot is fine, but say so rather than
-  // presenting month-old numbers as current.
-  const isStale = isError && !live && Boolean(fallback);
+  const { data } = useCredoraAssets();
+  const riskData = data?.[key];
 
   if (!riskData)
     return (
@@ -65,9 +59,7 @@ export default function RiskPanel({
         </div>
 
         <p className="text-klerosUIComponentsSecondaryText text-sm">
-          {isStale
-            ? "Live data unavailable — showing last known values"
-            : "Data provided by Credora"}
+          Data provided by Credora
         </p>
       </div>
 

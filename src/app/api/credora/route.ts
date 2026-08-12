@@ -3,7 +3,6 @@ export const revalidate = 300;
 import { NextResponse } from "next/server";
 
 import {
-  RiskAssetAddresses,
   RiskAssetData,
   RiskProfile,
 } from "@/consts/markets";
@@ -51,9 +50,9 @@ interface CredoraGraphqlResponse {
   errors?: unknown;
 }
 
-const buildQuery = (addresses: string[]) => `
+const buildQuery = () => `
 query {
-ratings(filter: { product: ["assets"], chainId: 1, address: ${JSON.stringify(addresses)} }, page: 0, limit: 100) {
+ratings(filter: { product: ["assets"], chainId: 1, address: [] }, page: 0, limit: 100) {
 totalCount
 items {
 id
@@ -70,7 +69,6 @@ Metrics {
 rating
 psl
 publishDate
-totalNotches
 }
 riskProfiles {
 metric_name
@@ -82,7 +80,6 @@ modifiers {
 code
 name
 enabled
-notch_impact
 factors {
 code
 fields {
@@ -167,7 +164,7 @@ export async function GET() {
         "Content-Type": "application/json",
         ClientSecret: clientSecret,
       },
-      body: JSON.stringify({ query: buildQuery(RiskAssetAddresses) }),
+      body: JSON.stringify({ query: buildQuery() }),
       next: { revalidate: 300 },
     });
 
@@ -181,7 +178,7 @@ export async function GET() {
     const result: Record<string, RiskAssetData> = {};
     for (const item of items) {
       const risk_profiles = toRiskProfiles(item.riskProfiles ?? []);
-      result[item.address.toLowerCase()] = {
+      result[item.name.toLowerCase()] = {
         metrics_rating: item.Metrics?.rating ?? "",
         address: item.address,
         rating_type: item.ratingType,
