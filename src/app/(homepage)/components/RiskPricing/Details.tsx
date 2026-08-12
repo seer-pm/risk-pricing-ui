@@ -9,6 +9,7 @@ import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import ChartBar from "@/assets/svg/chart-bar.svg";
 import CheckOutline from "@/assets/svg/check-outline.svg";
+import CredoraLogo from "@/assets/svg/credora-by-redstone.svg";
 import ExternalArrow from "@/assets/svg/external-arrow.svg";
 
 import { formatPd } from "@/utils";
@@ -65,9 +66,17 @@ export default function RiskPanel({
           <h3 className="text-lg font-semibold">Risk Panel</h3>
         </div>
 
-        <p className="text-klerosUIComponentsSecondaryText text-sm">
-          Data provided by Credora
-        </p>
+        {/* The lockup's black paths are currentColor, so it follows the theme
+            the way Credora's own light/dark variants do. */}
+        <a
+          href="https://app.credora.network"
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label="Credora — data provider"
+          className="text-klerosUIComponentsPrimaryText transition-opacity hover:opacity-80"
+        >
+          <CredoraLogo aria-hidden className="h-8 w-auto" />
+        </a>
       </div>
 
       {/* Score */}
