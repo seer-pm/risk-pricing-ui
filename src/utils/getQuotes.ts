@@ -27,12 +27,32 @@ export type GetQuoteProps = {
   marketName?: string;
 };
 
+/**
+ * Why a leg the user's prediction implied never made it into the batch.
+ * - below-minimum: the trade clears VOLUME_MIN in neither direction
+ * - no-volume-to-target: the pool is already at/past the target, or the
+ *   target clamped to the wrong side of spot
+ * - no-route: the Swapr quoter rejected or returned no route
+ */
+export type SkippedLegReason =
+  | "below-minimum"
+  | "no-volume-to-target"
+  | "no-route";
+
+export type SkippedLeg = {
+  symbol: string;
+  side: "buy" | "sell";
+  reason: SkippedLegReason;
+};
+
 export type GetQuotesResult = {
   quotes: {
     sellQuotes: SwaprV3Trade[];
     buyQuotes: SwaprV3Trade[];
   };
   mergeAmount: bigint;
+  /** Optional so the parallel getQuotes() consumer is unaffected. */
+  skipped?: SkippedLeg[];
 };
 
 const withMarketContext = (msg: string, marketName?: string) =>

@@ -9,10 +9,10 @@ import {
   DECIMALS,
   DEFAULT_CHAIN,
   PREDICTION_SLIPPAGE_BUFFER,
-  VOLUME_MIN,
   VOLUME_MIN_WEI,
 } from "@/consts";
 
+import type { SkippedLeg } from "./getQuotes";
 import { getMinimumAmountOut, getSwaprQuote } from "./swapr";
 
 import { minBigIntArray, toTokenAmountString } from ".";
@@ -34,9 +34,12 @@ export const getRiskQuotes = async ({
     [[], []] as [ProcessedMarket[], ProcessedMarket[]],
   );
 
+  const skipped: SkippedLeg[] = [];
+  const labelOf = (outcome: ProcessedMarket) => outcome.symbol ?? outcome.token;
+
   // getting sell quotes
-  const sellPromises = sellOutcomes.reduce(
-    (promises, outcome) => {
+  const sellRequests = sellOutcomes.reduce(
+    (requests, outcome) => {
       // if underlying balance is non-zero, then the previous step will have minted this much tokens already
       // so we have that available, hence added here
       const availableSellVolume = outcome.underlyingBalance + outcome.balance;
@@ -52,45 +55,54 @@ export const getRiskQuotes = async ({
           ? volumeUntilPriceWei
           : availableSellVolume;
       if (sellVolumeWei < VOLUME_MIN_WEI) {
-        return promises;
+        skipped.push({
+          symbol: labelOf(outcome),
+          side: "sell",
+          reason:
+            volumeUntilPriceWei === 0n
+              ? "no-volume-to-target"
+              : "below-minimum",
+        });
+        return requests;
       }
 
       // formatUnits is an exact round-trip back through parseUnits
       const volume = formatUnits(sellVolumeWei, DECIMALS);
 
-      promises.push(
-        getSwaprQuote({
+      requests.push({
+        outcome,
+        promise: getSwaprQuote({
           address: account,
           chain: DEFAULT_CHAIN.id,
           outcomeToken: outcome.underlyingToken,
           collateralToken: outcome.token,
           amount: volume,
-        }).catch((e) => {
-          throw e;
         }),
-      );
+      });
 
-      return promises;
+      return requests;
     },
-    [] as Promise<SwaprV3Trade | null>[],
+    [] as { outcome: ProcessedMarket; promise: Promise<SwaprV3Trade | null> }[],
   );
 
-  // no sell promises added (all volumes below minimum)
-  if (!sellPromises.length && sellOutcomes.length > 0) {
-    console.warn(
-      `getQuotes: No sell quotes requested (all volumes below minimum: ${VOLUME_MIN}).`,
-    );
-  }
-
   const sellTokenMapping: { [key: string]: bigint } = {};
-  const sellQuoteResults = await Promise.allSettled(sellPromises);
-  const sellQuotes = sellQuoteResults.reduce((quotes, result) => {
+  const sellQuoteResults = await Promise.allSettled(
+    sellRequests.map((request) => request.promise),
+  );
+  const sellQuotes = sellQuoteResults.reduce((quotes, result, index) => {
     if (result.status === "fulfilled" && result.value) {
       quotes.push(result.value);
       sellTokenMapping[
         // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
         result.value.inputAmount.currency.address?.toLowerCase()!
       ] = parseUnits(result.value.inputAmount.toExact(), DECIMALS);
+    } else {
+      // rejected, or fulfilled with null: the quoter found no route
+      skipped.push({
+        symbol: labelOf(sellRequests[index].outcome),
+        side: "sell",
+        reason: "no-route",
+      });
     }
     return quotes;
   }, [] as SwaprV3Trade[]);
@@ -124,14 +136,13 @@ export const getRiskQuotes = async ({
       "Quote Error: Not enough collateral. Could not acquire enough collateral to find buy quotes",
     );
   }
-  console.log(buyOutcomes);
   // get buy quotes
   const sumBuyDifference = buyOutcomes.reduce(
     (acc, curr) => acc + curr.difference,
     0,
   );
-  const buyPromises = buyOutcomes.reduce(
-    (promises, outcome) => {
+  const buyRequests = buyOutcomes.reduce(
+    (requests, outcome) => {
       // here we allocate the collateral based on the weight of prediction,
       // so if an outcome has high difference they get more collateral to utilize
       const sumBuyUnits = parseUnits(
@@ -154,40 +165,64 @@ export const getRiskQuotes = async ({
         volumeUntilPriceWei < availableBuyVolume
           ? volumeUntilPriceWei
           : availableBuyVolume;
-      if (buyVolumeWei < VOLUME_MIN_WEI) {
-        return promises;
+
+      // Gate in outcome tokens, matching the sell leg. Gating the swap input
+      // (collateral) against the same VOLUME_MIN made buys impossible on
+      // low-priced outcomes: moving a pool priced ~1e-4 all the way to target
+      // costs well under 0.001 collateral, while the equivalent sell is 1-3
+      // whole tokens. getVolumeUntilPriceDual already returns both sides, so
+      // scale the token figure by however much of the collateral move we can
+      // actually afford.
+      const outcomeVolumeWei = parseUnits(
+        toTokenAmountString(outcome.volumeUntilPrice.outcomeVolume),
+        DECIMALS,
+      );
+      const buyVolumeTokens =
+        volumeUntilPriceWei === 0n
+          ? 0n
+          : (outcomeVolumeWei * buyVolumeWei) / volumeUntilPriceWei;
+      if (buyVolumeTokens < VOLUME_MIN_WEI) {
+        skipped.push({
+          symbol: labelOf(outcome),
+          side: "buy",
+          reason:
+            volumeUntilPriceWei === 0n
+              ? "no-volume-to-target"
+              : "below-minimum",
+        });
+        return requests;
       }
 
       const volume = formatUnits(buyVolumeWei, DECIMALS);
 
       // get quote
-      promises.push(
-        getSwaprQuote({
+      requests.push({
+        outcome,
+        promise: getSwaprQuote({
           address: account,
           chain: DEFAULT_CHAIN.id,
           outcomeToken: outcome.token,
           collateralToken: outcome.underlyingToken,
           amount: volume,
-        }).catch((e) => {
-          throw e;
         }),
-      );
-      return promises;
+      });
+      return requests;
     },
-    [] as Promise<SwaprV3Trade | null>[],
+    [] as { outcome: ProcessedMarket; promise: Promise<SwaprV3Trade | null> }[],
   );
 
-  // no buy promises added (all volumes below minimum)
-  if (!buyPromises.length && buyOutcomes.length > 0) {
-    console.warn(
-      `getQuotes: No buy quotes requested (all volumes below minimum: ${VOLUME_MIN}).`,
-    );
-  }
-
-  const buyQuoteResult = await Promise.allSettled(buyPromises);
-  const buyQuotes = buyQuoteResult.reduce((quotes, result) => {
+  const buyQuoteResult = await Promise.allSettled(
+    buyRequests.map((request) => request.promise),
+  );
+  const buyQuotes = buyQuoteResult.reduce((quotes, result, index) => {
     if (result.status === "fulfilled" && result.value) {
       quotes.push(result.value);
+    } else {
+      skipped.push({
+        symbol: labelOf(buyRequests[index].outcome),
+        side: "buy",
+        reason: "no-route",
+      });
     }
     return quotes;
   }, [] as SwaprV3Trade[]);
@@ -195,6 +230,7 @@ export const getRiskQuotes = async ({
   return {
     quotes: { sellQuotes, buyQuotes },
     mergeAmount: collateralFromMerge,
+    skipped,
   };
 };
 

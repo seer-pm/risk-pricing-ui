@@ -36,8 +36,12 @@ const CsvUploadPopup: React.FC<ICsvUploadPopup> = ({
       const csvText = await file.text();
       const records = parseRiskCSV(csvText);
       const predictions: { [key: string]: number } = {};
+      // assets only: "No To All" (-2) is derived from these, and "Invalid" (-1)
+      // is never predicted, so a row for either is ignored rather than written
+      // into the store where it would contradict the asset predictions.
+      const assets = outcomes.slice(0, -2);
       Object.entries(records).map(([asset, probability]) => {
-        const outcomeId = outcomes.find((outcome) =>
+        const outcomeId = assets.find((outcome) =>
           isTwoStringsEqual(outcome.outcome, asset),
         )?.outcomeId;
         if (outcomeId) {

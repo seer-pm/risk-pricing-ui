@@ -21,6 +21,8 @@ export type ProcessedMarket = {
   underlyingToken: Address;
   token: Address;
   difference: number;
+  /** Human-readable label, used only to report skipped legs. */
+  symbol?: string;
 };
 
 interface IProcessMarkets {

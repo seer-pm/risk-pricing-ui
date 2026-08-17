@@ -7,8 +7,14 @@ import { clamp, isUndefined } from "@/utils";
 import { useTicksData } from "./useTicksData";
 import { decimalToFraction, isTwoStringsEqual, tickToPrice } from "./utils";
 
-const MIN_PRICE = 0.0001;
-const MAX_PRICE = 0.9999;
+// Guard rails for the sqrtPrice conversion, not a trading band. They used to
+// sit at 1e-4/0.9999, which is inside the range real PD outcomes trade at: an
+// outcome already priced below 1e-4 had every sell target clamped back above
+// spot, so getVolumeUntilPriceDual returned zero volume and the outcome could
+// not be traded in either direction. A floor is still required because
+// computePrices can return exactly 0 and a zero sqrt ratio breaks TickMath.
+const MIN_PRICE = 1e-9;
+const MAX_PRICE = 1 - 1e-9;
 
 function getVolumeWithinRangeDual(
   currentSqrtPriceX96: bigint,

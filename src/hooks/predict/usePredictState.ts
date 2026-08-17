@@ -2,6 +2,8 @@ import { useReducer } from "react";
 
 import { Address } from "viem";
 
+import { SkippedLeg } from "@/utils/getQuotes";
+
 export interface PredictState {
   createdTradeWallet?: Address;
   isCreatingWallet: boolean;
@@ -15,6 +17,8 @@ export interface PredictState {
   chunkProgressMessage?: string;
   frozenToBeAdded?: bigint;
   frozenToBeAddedSeerCredits?: bigint;
+  /** Legs the prediction implied but the quoter could not place. */
+  skippedLegs?: SkippedLeg[];
   error?: string;
   isSending: boolean;
 }
@@ -32,6 +36,7 @@ const initialState: PredictState = {
   chunkProgressMessage: undefined,
   frozenToBeAdded: undefined,
   frozenToBeAddedSeerCredits: undefined,
+  skippedLegs: undefined,
   createdTradeWallet: undefined,
   error: undefined,
 };

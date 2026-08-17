@@ -1,7 +1,9 @@
 import { TickMath } from "@uniswap/v3-sdk";
 import { BigNumber } from "ethers";
 import { GraphQLClient } from "graphql-request";
-import { Address, formatUnits } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
+
+import { toTokenAmountString } from "@/utils";
 
 export function tickToPrice(
   tick: number,
@@ -62,13 +64,21 @@ export function sqrtPriceX96ToPrice(
   ];
 }
 
+/**
+ * Exact fraction for encodeSqrtRatioX96, on a fixed 1e18 scale.
+ *
+ * The previous implementation derived the scale from `x.toString()`, which
+ * breaks at both ends: below 1e-6 JS switches to scientific notation, so
+ * `"1e-9"` has no "." and the function returned ["1e-9", "1"] for JSBI to
+ * choke on; and at >=21 decimals `String(10 ** 21)` is "1e+21", same problem
+ * on the denominator. A fixed scale sidesteps both, and toTokenAmountString
+ * already guarantees a plain decimal string.
+ */
 export function decimalToFraction(x: number): [string, string] {
-  const str = x.toString();
-  if (!str.includes(".")) return [String(x), "1"];
-  const decimals = str.split(".")[1].length;
-  const numerator = Math.round(x * 10 ** decimals);
-  const denominator = 10 ** decimals;
-  return [String(numerator), String(denominator)];
+  return [
+    parseUnits(toTokenAmountString(x), 18).toString(),
+    (10n ** 18n).toString(),
+  ];
 }
 
 export const getGraphUrl = () => {

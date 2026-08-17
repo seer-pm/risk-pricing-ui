@@ -22,10 +22,30 @@ const PredictionsCsvButton: React.FC<{ text: string }> = ({ text }) => {
   const predictions = useRiskPredictionStore((state) => state.riskPredictions);
 
   const handleDownload = () => {
-    const data = outcomes.slice(0, -1).map((outcome) => ({
-      asset: outcome.outcome,
-      probability: predictions[outcome.outcomeId] ?? outcome.probability,
-    }));
+    // assets only: drop "No To All" (-2) and "Invalid" (-1)
+    const assets = outcomes.slice(0, -2);
+    const probabilityOf = (outcome: (typeof outcomes)[number]) =>
+      predictions[outcome.outcomeId] ?? outcome.probability;
+
+    const data: { asset: string; probability: number }[] = assets.map(
+      (outcome) => ({
+        asset: outcome.outcome,
+        probability: probabilityOf(outcome),
+      }),
+    );
+
+    // "No To All" is derived, not stored: exporting the raw store value would
+    // emit the market number rather than what these predictions imply.
+    const noToAll = outcomes.at(-2);
+    if (noToAll) {
+      data.push({
+        asset: noToAll.outcome,
+        probability: assets.reduce(
+          (survival, asset) => survival * (1 - probabilityOf(asset)),
+          1,
+        ),
+      });
+    }
 
     const csv = Papa.unparse(data, { columns: ["asset", "probability"] });
     downloadCsvFile(

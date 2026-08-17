@@ -89,11 +89,43 @@ const PredictionSlider = ({
 
   // Store subscription — only re-renders when THIS outcome's prediction
   // changes (or when outcome.probability changes).
+  //
+  // "No To All" is the exception: it is the probability that none of the listed
+  // assets defaults, prod(1 - p_i), so it is fully determined by the asset
+  // sliders and is derived here rather than read back from the store. Letting
+  // it be set independently would contradict the price vector the trade is
+  // built from — usePredictRiskFlow takes this same value as its target via
+  // computePrices().priceY, and useMarketData recomputes it the same way for
+  // display. The selector still returns a plain number, so zustand's Object.is
+  // check keeps this card from re-rendering unless the derived value moves, and
+  // asset cards keep their narrow per-outcome subscription.
   const prediction = useRiskPredictionStore(
     useCallback(
-      (state) =>
-        (state.riskPredictions[outcome.outcomeId] ?? outcome.probability) * 100,
-      [outcome.outcomeId, outcome.probability],
+      (state) => {
+        if (!isNoToAll) {
+          return (
+            (state.riskPredictions[outcome.outcomeId] ?? outcome.probability) *
+            100
+          );
+        }
+        // assets only: drop "No To All" (-2) and "Invalid" (-1). priceY is just
+        // prod(1 - p_i), so compute it directly instead of running computePrices
+        // for an O(n^3) prices array we would discard.
+        const assets = state.outcomes.slice(0, -2);
+        if (assets.length === 0) return outcome.probability * 100;
+        return (
+          assets.reduce(
+            (survival, asset) =>
+              survival *
+              (1 -
+                (state.riskPredictions[asset.outcomeId] ??
+                  asset.probability ??
+                  0)),
+            1,
+          ) * 100
+        );
+      },
+      [isNoToAll, outcome.outcomeId, outcome.probability],
     ),
   );
 
@@ -130,23 +162,28 @@ const PredictionSlider = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The "No To All" track is a derived readout, so it never writes to the
+  // store. The Slider is also isDisabled below; these guards are belt-and-braces
+  // for the keyboard/programmatic paths.
   const handleChange = useCallback(
     (scaled: number) => {
+      if (isNoToAll) return;
       const real = fromScaledValue(scaled);
       draftRef.current = real;
       setDraftValue(real);
     },
-    [fromScaledValue],
+    [isNoToAll, fromScaledValue],
   );
 
   const handleChangeEnd = useCallback(
     (scaled: number | number[]) => {
+      if (isNoToAll) return;
       const real = fromScaledValue(Array.isArray(scaled) ? scaled[0] : scaled);
       draftRef.current = null;
       setDraftValue(null);
       setPredictions({ [outcome.outcomeId]: real / 100 });
     },
-    [outcome.outcomeId, fromScaledValue, setPredictions],
+    [isNoToAll, outcome.outcomeId, fromScaledValue, setPredictions],
   );
 
   const displayValue = draftValue ?? prediction;
@@ -225,9 +262,14 @@ const PredictionSlider = ({
           maxValue={maxValue}
           minValue={0}
           value={scale(displayValue)}
+          isDisabled={isNoToAll}
           leftLabel=""
           rightLabel=""
-          aria-label={`${outcome.outcome} probability of default`}
+          aria-label={
+            isNoToAll
+              ? `${outcome.outcome} probability, derived from the asset predictions`
+              : `${outcome.outcome} probability of default`
+          }
           callback={handleChange}
           onChangeEnd={handleChangeEnd}
           formatter={formatted}

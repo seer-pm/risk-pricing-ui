@@ -15,6 +15,7 @@ interface IProcessMarket {
   targetPrice: number;
   tradeExecutor: Address;
   mintAmount?: bigint;
+  symbol?: string;
 }
 
 export const processRiskMarket = async ({
@@ -23,6 +24,7 @@ export const processRiskMarket = async ({
   targetPrice,
   tradeExecutor,
   mintAmount,
+  symbol,
 }: IProcessMarket) => {
   try {
     const { token0, token1 } = getToken0Token1(underlying, outcome);
@@ -61,6 +63,7 @@ export const processRiskMarket = async ({
       underlyingToken: underlying,
       token: outcome,
       difference: Math.abs(currentPrice - targetPrice),
+      symbol,
     };
   } catch (e) {
     if (e instanceof Error) {

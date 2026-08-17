@@ -75,14 +75,22 @@ export function usePredictRiskFlow({
   const outcomes = useRiskPredictionStore((state) => state.outcomes);
   // predictions/outcome.probability are yearly PD; the pools trade on
   // quarterly-implied prices, so convert before pricing the trade.
-  const predictedProbs = outcomes
-    .slice(0, -1)
+  //
+  // Solve over the assets only. "No To All" is a survival probability, not a
+  // PD, so including it here (slice(0, -1)) fed computePrices a 34th element
+  // it treated as another asset default: that priced No To All near 0.12
+  // against a pool at ~0.71, so it was classified "sell" and dumped to the
+  // bottom of its range on every submission, and it biased every asset target
+  // downwards. priceY is the correct No To All target, and is what
+  // useMarketData already recomputes for display.
+  const assetProbs = outcomes
+    .slice(0, -2)
     .map(
       (outcome) => predictions[outcome.outcomeId] ?? outcome.probability ?? 0,
     );
-  const quarterlyPredictedProbs = predictedProbs.map(yearlyToQuarterly);
-  const { priceY, prices } = computePrices(quarterlyPredictedProbs);
-  // prices for asset + no to all price (last outcome)
+  const { priceY, prices } = computePrices(assetProbs.map(yearlyToQuarterly));
+  // index 0..n-1 = assets, index n = "No To All". "Invalid" is never traded,
+  // so this lines up with the slice(0, -1) the trade loop below iterates.
   const predictedPrices = [...prices, priceY];
   const createTradeExecutor = useCreateTradeExecutor();
   const depositToTradeExecutor = useDepositToTradeExecutor(() => {});
@@ -253,11 +261,11 @@ export function usePredictRiskFlow({
             tradeExecutor: tradeWallet!,
             mintAmount: mintAmount,
             targetPrice: predictedPrices[index] ?? 0,
+            symbol: outcome.symbol,
           });
           return outcomeProcessed;
         }),
       );
-      console.log(processedPredictions);
       setFlag("isProcessingMarkets", false);
 
       // get quotes
@@ -269,9 +277,11 @@ export function usePredictRiskFlow({
           account: tradeWallet!,
           processedOutcomePredictions: processedPredictions,
         });
-      } catch {
+      } catch (e) {
         setFlag("isLoadingQuotes", false);
-        throw new Error("No routes found");
+        // keep the real reason: "No routes found" hid the actual failure,
+        // which is usually the not-enough-collateral throw
+        throw e instanceof Error ? e : new Error("No routes found");
       }
 
       if (!quoteResult) {
@@ -281,7 +291,7 @@ export function usePredictRiskFlow({
 
       setFlag("isLoadingQuotes", false);
       setFlag("chunkProgressMessage", undefined);
-      console.log(quoteResult);
+      setFlag("skippedLegs", quoteResult.skipped);
       // execute trade
       const mintAmount =
         (snapshot.initialSDAIDeposit ?? 0n) -
