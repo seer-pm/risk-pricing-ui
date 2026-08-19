@@ -291,7 +291,6 @@ export function usePredictRiskFlow({
 
       setFlag("isLoadingQuotes", false);
       setFlag("chunkProgressMessage", undefined);
-      setFlag("skippedLegs", quoteResult.skipped);
       // execute trade
       const mintAmount =
         (snapshot.initialSDAIDeposit ?? 0n) -

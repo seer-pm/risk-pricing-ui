@@ -169,13 +169,15 @@ export const MARKET_PD_TOOLTIP =
 // "No To All" is the opposite of a PD: it pays out when nothing defaults, so it
 // needs its own caption and explanation rather than the per-asset one.
 export const NO_TO_ALL_LABEL = "Market Estimate (Ann.)";
-// Second paragraph covers the slider itself, which is read-only. The tooltip
-// renders with whitespace-pre-line, so the blank line survives.
+// Second paragraph covers the slider itself, which moves in tandem with the
+// asset sliders in both directions. The tooltip renders with
+// whitespace-pre-line, so the blank line survives.
 export const NO_TO_ALL_TOOLTIP =
   "The market's current consensus on the annualized probability that none " +
   "of the listed assets default, implied by current trading prices.\n\n" +
-  "This slider can't be moved. Its value is calculated from your " +
-  "predictions.";
+  "This slider is tied to the asset sliders: moving it rescales every " +
+  "asset's probability of default proportionally. Raise it and all risks " +
+  "fall; lower it and all risks rise.";
 export const BLOCK_EXPLORER_URLS: Partial<Record<number, string>> = {
   [gnosis.id]: "https://gnosisscan.io",
   [mainnet.id]: "https://etherscan.io",

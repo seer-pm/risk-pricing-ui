@@ -213,7 +213,6 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
     isLoadingQuotes,
     isPredictionSuccessful,
     chunkProgressMessage,
-    skippedLegs,
     isSending,
     error,
     frozenToBeAdded,
@@ -294,7 +293,6 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
               isProcessingMarkets,
               isPredictionSuccessful,
               chunkProgressMessage,
-              skippedLegs,
               isMakingPrediction: tradeExecutorPredictAll.isPending,
               error,
             }}

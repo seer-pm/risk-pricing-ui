@@ -11,8 +11,15 @@ import React, {
 import { Slider } from "@kleros/ui-components-library";
 import clsx from "clsx";
 
-import { useRiskPredictionStore } from "@/store/riskMarketStore";
+import {
+  selectAssetProbs,
+  selectAssets,
+  selectHasAssetPrediction,
+  selectNoToAllProbability,
+  useRiskPredictionStore,
+} from "@/store/riskMarketStore";
 
+import { scaleProbsToSurvival } from "@/hooks/useImpliedProbs";
 import { RiskPricingOutcome } from "@/hooks/useMarketData";
 
 import { Skeleton } from "@/components/Skeleton";
@@ -91,10 +98,11 @@ const PredictionSlider = ({
   // changes (or when outcome.probability changes).
   //
   // "No To All" is the exception: it is the probability that none of the listed
-  // assets defaults, prod(1 - p_i), so it is fully determined by the asset
-  // sliders and is derived here rather than read back from the store. Letting
-  // it be set independently would contradict the price vector the trade is
-  // built from — usePredictRiskFlow takes this same value as its target via
+  // assets defaults, prod(1 - p_i), so it is read as a derived value rather than
+  // as a stored prediction of its own. It is still user-settable — dragging it
+  // writes the assets (see `commit` below) and the readout follows from them —
+  // which is what keeps it from ever contradicting the price vector the trade is
+  // built from: usePredictRiskFlow takes this same value as its target via
   // computePrices().priceY, and useMarketData recomputes it the same way for
   // display. The selector still returns a plain number, so zustand's Object.is
   // check keeps this card from re-rendering unless the derived value moves, and
@@ -108,22 +116,8 @@ const PredictionSlider = ({
             100
           );
         }
-        // assets only: drop "No To All" (-2) and "Invalid" (-1). priceY is just
-        // prod(1 - p_i), so compute it directly instead of running computePrices
-        // for an O(n^3) prices array we would discard.
-        const assets = state.outcomes.slice(0, -2);
-        if (assets.length === 0) return outcome.probability * 100;
-        return (
-          assets.reduce(
-            (survival, asset) =>
-              survival *
-              (1 -
-                (state.riskPredictions[asset.outcomeId] ??
-                  asset.probability ??
-                  0)),
-            1,
-          ) * 100
-        );
+        if (selectAssets(state).length === 0) return outcome.probability * 100;
+        return selectNoToAllProbability(state) * 100;
       },
       [isNoToAll, outcome.outcomeId, outcome.probability],
     ),
@@ -132,10 +126,17 @@ const PredictionSlider = ({
   // Whether the user has ever committed a prediction for this outcome. Without
   // it the marker would sit permanently slipped down on first paint, when the
   // thumb still rests exactly on the market value.
+  //
+  // "No To All" never has a stored prediction of its own, so any asset
+  // prediction — whether made on an asset slider or by dragging this one —
+  // counts as one for it.
   const hasUserPrediction = useRiskPredictionStore(
     useCallback(
-      (state) => state.riskPredictions[outcome.outcomeId] !== undefined,
-      [outcome.outcomeId],
+      (state) =>
+        isNoToAll
+          ? selectHasAssetPrediction(state)
+          : state.riskPredictions[outcome.outcomeId] !== undefined,
+      [isNoToAll, outcome.outcomeId],
     ),
   );
 
@@ -151,39 +152,69 @@ const PredictionSlider = ({
   const [draftValue, setDraftValue] = useState<number | null>(null);
   const draftRef = useRef<number | null>(null); // stable ref for cleanup
 
+  // Writes a released value into the store, as a percentage.
+  //
+  // An asset writes its own prediction. "No To All" has none — it is
+  // prod(1 - p_i) — so setting it runs backwards into the assets:
+  // scaleProbsToSurvival raises every asset's survival to a common power, which
+  // lands the derived readout exactly on the released value while keeping the
+  // assets in their existing risk order. Raise it and every risk falls; lower it
+  // and every risk rises.
+  //
+  // The whole asset vector is read at release rather than snapshotted at drag
+  // start: nothing writes to the store mid-drag (that is what draftValue is
+  // for), so the two are the same vector, minus a market refetch landing during
+  // the drag — in which case rescaling the fresher one is the better answer.
+  const commit = useCallback(
+    (real: number) => {
+      if (!isNoToAll) {
+        setPredictions({ [outcome.outcomeId]: real / 100 });
+        return;
+      }
+      const state = useRiskPredictionStore.getState();
+      const assets = selectAssets(state);
+      if (assets.length === 0) return;
+      const rescaled = scaleProbsToSurvival(
+        selectAssetProbs(state),
+        real / 100,
+      );
+      setPredictions(
+        Object.fromEntries(
+          assets.map((asset, index) => [asset.outcomeId, rescaled[index]]),
+        ),
+      );
+    },
+    [isNoToAll, outcome.outcomeId, setPredictions],
+  );
+
   // Flush draft to store on unmount (e.g. if user starts dragging and
   // navigates away without releasing).
   useEffect(() => {
     return () => {
       if (draftRef.current !== null) {
-        setPredictions({ [outcome.outcomeId]: draftRef.current / 100 });
+        commit(draftRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The "No To All" track is a derived readout, so it never writes to the
-  // store. The Slider is also isDisabled below; these guards are belt-and-braces
-  // for the keyboard/programmatic paths.
   const handleChange = useCallback(
     (scaled: number) => {
-      if (isNoToAll) return;
       const real = fromScaledValue(scaled);
       draftRef.current = real;
       setDraftValue(real);
     },
-    [isNoToAll, fromScaledValue],
+    [fromScaledValue],
   );
 
   const handleChangeEnd = useCallback(
     (scaled: number | number[]) => {
-      if (isNoToAll) return;
       const real = fromScaledValue(Array.isArray(scaled) ? scaled[0] : scaled);
       draftRef.current = null;
       setDraftValue(null);
-      setPredictions({ [outcome.outcomeId]: real / 100 });
+      commit(real);
     },
-    [isNoToAll, outcome.outcomeId, fromScaledValue, setPredictions],
+    [fromScaledValue, commit],
   );
 
   const displayValue = draftValue ?? prediction;
@@ -262,12 +293,11 @@ const PredictionSlider = ({
           maxValue={maxValue}
           minValue={0}
           value={scale(displayValue)}
-          isDisabled={isNoToAll}
           leftLabel=""
           rightLabel=""
           aria-label={
             isNoToAll
-              ? `${outcome.outcome} probability, derived from the asset predictions`
+              ? `${outcome.outcome} probability — moving it rescales every asset's probability of default`
               : `${outcome.outcome} probability of default`
           }
           callback={handleChange}

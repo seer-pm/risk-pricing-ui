@@ -9,7 +9,6 @@ import CircleOutline from "@/assets/svg/circle-outline.svg";
 import CloseOutline from "@/assets/svg/close-circle.svg";
 
 import { formatValue, isUndefined, shortenAddress } from "@/utils";
-import { SkippedLeg } from "@/utils/getQuotes";
 
 import Spinner from "../Spinner";
 
@@ -31,15 +30,8 @@ interface IPredictSteps {
   isMakingPrediction: boolean;
   isPredictionSuccessful: boolean;
   chunkProgressMessage?: string;
-  skippedLegs?: SkippedLeg[];
   error?: string;
 }
-
-const SKIPPED_REASON_TEXT: Record<SkippedLeg["reason"], string> = {
-  "below-minimum": "too small to trade",
-  "no-volume-to-target": "pool already at your prediction",
-  "no-route": "no route available",
-};
 
 const PredictSteps: React.FC<IPredictSteps> = ({
   tradeExecutor,
@@ -55,7 +47,6 @@ const PredictSteps: React.FC<IPredictSteps> = ({
   isMakingPrediction,
   isPredictionSuccessful,
   chunkProgressMessage,
-  skippedLegs,
   error,
 }) => {
   const predictionProgressText = useMemo(() => {
@@ -138,25 +129,6 @@ const PredictSteps: React.FC<IPredictSteps> = ({
             : undefined,
     });
 
-    if (skippedLegs && skippedLegs.length > 0) {
-      steps.push({
-        title: `${skippedLegs.length} outcome${skippedLegs.length === 1 ? "" : "s"} not traded`,
-        subtitle: (
-          <span className="break-words whitespace-pre-wrap">
-            {skippedLegs
-              .map(
-                ({ symbol, side, reason }) =>
-                  `${symbol}: ${side} skipped, ${SKIPPED_REASON_TEXT[reason]}`,
-              )
-              .join("\n")}
-          </span>
-        ) as unknown as string,
-        variant: "#c98a00",
-        party: "",
-        Icon: CircleOutline,
-      });
-    }
-
     if (!isUndefined(error)) {
       steps.push({
         title: "Prediction failed!",
@@ -183,7 +155,6 @@ const PredictSteps: React.FC<IPredictSteps> = ({
     predictionProgressText,
     isProcessingMarkets,
     isLoadingQuotes,
-    skippedLegs,
     error,
   ]);
 

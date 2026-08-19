@@ -6,7 +6,11 @@ import {
 import clsx from "clsx";
 import Link from "next/link";
 
-import { useRiskPredictionStore } from "@/store/riskMarketStore";
+import {
+  selectHasAssetPrediction,
+  selectNoToAllProbability,
+  useRiskPredictionStore,
+} from "@/store/riskMarketStore";
 
 import { useTradeWallet } from "@/context/TradeWalletContext";
 import { useAssetColorMap } from "@/hooks/useAssetColorMap";
@@ -42,7 +46,16 @@ const RiskPricing = ({
     outcomeId,
     outcomeIndex,
   } = outcome;
+  // "No To All" has no stored prediction of its own - it is prod(1 - p_i) over
+  // the assets - so it reads as selected whenever that derived value has moved
+  // off the market estimate, whether the user dragged this slider or an asset's.
   const isSelected = useRiskPredictionStore((state) => {
+    if (isNoToAll) {
+      return (
+        selectHasAssetPrediction(state) &&
+        selectNoToAllProbability(state) !== probability
+      );
+    }
     const pred = state.riskPredictions[outcomeId];
     return pred !== undefined && pred !== probability;
   });

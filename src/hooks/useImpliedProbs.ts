@@ -50,6 +50,65 @@ export function yearlySurvivalToQuarterly(yearlySurvival: number): number {
   return yearlySurvival ** (1 / 4);
 }
 
+// Guard rails for the No To All inversion below: a survival probability of
+// exactly 0 or 1 has no finite proportional-hazard solution.
+const SURVIVAL_EPS = 1e-6;
+
+const clampProb = (p: number) => Math.min(1 - 1e-9, Math.max(0, p));
+
+/**
+ * Inverse of {@link computePrices}'s priceY leg, constrained so the whole asset
+ * vector moves together.
+ *
+ * "No To All" pays out when nothing defaults, so its value is the joint survival
+ * S = prod(1 - p_i). Setting S alone is underdetermined, so we pick the
+ * proportional-hazard solution: raise every asset's survival to a common power.
+ *
+ *   alpha = ln(targetSurvival) / ln(S)
+ *   p_i'  = 1 - (1 - p_i) ^ alpha
+ *
+ * which reproduces the target exactly, since prod(1 - p_i') = S ^ alpha. It
+ * keeps the assets in their existing risk order, and for small PDs it is close
+ * to scaling every risk by the same factor: raise No To All and every risk
+ * falls, lower it and every risk rises. It is also the same algebraic form as
+ * {@link yearlyToQuarterly}, so it composes with the yearly/quarterly
+ * conversions rather than fighting them.
+ *
+ * Inputs and outputs are yearly PDs, matching what the sliders store.
+ *
+ * NOTE: an asset sitting at exactly p_i = 0 is a fixed point (1 ^ alpha = 1) and
+ * stays at 0. That is intended - a risk the user has explicitly zeroed is not
+ * revived by dragging No To All down.
+ */
+export function scaleProbsToSurvival(
+  probs: number[],
+  targetSurvival: number,
+): number[] {
+  const n = probs.length;
+  if (n === 0) return [];
+  // Math.min/max propagate NaN, which would poison every asset. Leaving the
+  // vector alone is the right answer to a value that means nothing.
+  if (!Number.isFinite(targetSurvival)) return probs;
+
+  // alpha blows up at both ends: S = 1 gives alpha = 0 (every risk wiped to
+  // exactly 0, unrecoverable), S = 0 gives alpha = Infinity.
+  const target = Math.min(
+    1 - SURVIVAL_EPS,
+    Math.max(SURVIVAL_EPS, targetSurvival),
+  );
+
+  const survival = probs.reduce((acc, p) => acc * (1 - p), 1);
+
+  // ln(survival) is 0 or -Infinity here, so there is no alpha to solve for.
+  // Spread the target evenly instead, so the slider still responds.
+  if (!(survival > 1e-9) || survival >= 1 - 1e-9) {
+    return Array(n).fill(clampProb(1 - target ** (1 / n)));
+  }
+
+  const alpha = Math.log(target) / Math.log(survival);
+  return probs.map((p) => clampProb(1 - (1 - p) ** alpha));
+}
+
 export function computePrices(p: number[]) {
   const n = p.length;
   let priceY = 1;

@@ -3,8 +3,15 @@ import React, { useMemo } from "react";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { sortOutcomesByCategory } from "@/app/(homepage)/components/RiskPricing/constants";
-import { useRiskPredictionStore } from "@/store/riskMarketStore";
+import {
+  NO_TO_ALL_COLOR,
+  sortOutcomesByCategory,
+} from "@/app/(homepage)/components/RiskPricing/constants";
+import {
+  selectHasAssetPrediction,
+  selectNoToAllProbability,
+  useRiskPredictionStore,
+} from "@/store/riskMarketStore";
 
 import { useAssetColorMap } from "@/hooks/useAssetColorMap";
 
@@ -23,6 +30,9 @@ const RiskMarketHeader: React.FC = () => {
   const removePrediction = useRiskPredictionStore(
     (state) => state.removePrediction,
   );
+  // "No To All" has no stored prediction - it is prod(1 - p_i) over the assets.
+  const noToAllProbability = useRiskPredictionStore(selectNoToAllProbability);
+  const hasAssetPrediction = useRiskPredictionStore(selectHasAssetPrediction);
   const colorOf = useAssetColorMap();
   // Same category grouping as the sliders this list mirrors.
   const sortedOutcomes = useMemo(
@@ -57,8 +67,19 @@ const RiskMarketHeader: React.FC = () => {
         ) : null}
         <div className="flex w-full flex-col gap-0.25">
           <AnimatePresence>
-            {sortedOutcomes.slice(0, -1).map((outcome) => {
-              const prediction = predictions[outcome.outcomeId];
+            {sortedOutcomes.slice(0, -1).map((outcome, index, legs) => {
+              // "No To All" is the last leg here (the slice drops only
+              // "Invalid"), and it has no stored prediction of its own. It is
+              // still traded on every submission - usePredictRiskFlow prices it
+              // as computePrices().priceY - so it belongs in this list whenever
+              // the assets move it, not only when the user drags its own
+              // slider.
+              const isNoToAll = index === legs.length - 1;
+              const prediction = isNoToAll
+                ? hasAssetPrediction
+                  ? noToAllProbability
+                  : undefined
+                : predictions[outcome.outcomeId];
               if (!prediction || prediction === outcome.probability) return;
               return (
                 <motion.div
@@ -78,7 +99,11 @@ const RiskMarketHeader: React.FC = () => {
                       <div
                         className="size-2 rounded-full"
                         style={{
-                          backgroundColor: colorOf(outcome.outcome),
+                          // colorOf only maps assets; without this "No To All"
+                          // would fall through to the "Funds Based" purple.
+                          backgroundColor: isNoToAll
+                            ? NO_TO_ALL_COLOR
+                            : colorOf(outcome.outcome),
                         }}
                       />
                       <span className="text-klerosUIComponentsPrimaryText text-sm font-semibold sm:text-base">
@@ -91,31 +116,37 @@ const RiskMarketHeader: React.FC = () => {
                         Probability
                       </span>
                       <span className="text-klerosUIComponentsPrimaryText text-sm font-semibold sm:text-base">
-                        {predictions[outcome.outcomeId]
-                          ? `${(predictions[outcome.outcomeId] * 100).toFixed(3)}%`
+                        {prediction
+                          ? `${(prediction * 100).toFixed(3)}%`
                           : "0%"}
                       </span>
                     </div>
                   </div>
-                  {!isUndefined(predictions[outcome.outcomeId]) &&
-                  !isUndefined(outcome.probability) ? (
+                  {!isUndefined(outcome.probability) ? (
                     <label
                       className={clsx(
                         "text-xs sm:text-sm",
-                        predictions[outcome.outcomeId] > outcome.probability
+                        prediction > outcome.probability
                           ? "text-green-2"
                           : "text-red-2",
                       )}
                     >
-                      {predictions[outcome.outcomeId] > outcome.probability ? (
+                      {prediction > outcome.probability ? (
                         <ArrowUp className="[&_path]:fill-green-2 mr-1 inline size-3" />
                       ) : (
                         <ArrowDown className="[&_path]:fill-red-2 mr-1 inline size-3" />
                       )}
-                      {`${predictions[outcome.outcomeId] > outcome.probability ? "Higher" : "Lower"} than the market`}
+                      {`${prediction > outcome.probability ? "Higher" : "Lower"} than the market`}
                     </label>
                   ) : null}
-                  {hasPredictions ? (
+                  {/* No remove button on "No To All": there is no store key to
+                      delete, and the leg cannot be dropped without also
+                      dropping the asset predictions that imply it. */}
+                  {isNoToAll ? (
+                    <span className="text-klerosUIComponentsSecondaryText mt-0.5 text-xs">
+                      Derived from your asset predictions
+                    </span>
+                  ) : hasPredictions ? (
                     <LightButton
                       className="absolute top-1/2 right-2 -translate-y-1/2 p-1"
                       ariaLabel={`Remove ${outcome.outcome} prediction`}
