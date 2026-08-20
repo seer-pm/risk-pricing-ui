@@ -10,7 +10,6 @@ import { Address } from "viem";
 import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import { TradeWalletProvider } from "@/context/TradeWalletContext";
-import { isTwoStringsEqual } from "@/hooks/liquidity/utils";
 import {
   yearlySurvivalToQuarterly,
   yearlyToQuarterly,
@@ -29,8 +28,9 @@ import ParticipateSection from "./components/ParticipateSection";
 import PredictionsCsvButton from "./components/ParticipateSection/CsvUpload/PredictionsCsvButton";
 import PredictAll from "./components/PredictAll";
 import QuarterTabs from "./components/QuarterTabs";
-import RiskPricing from "./components/RiskPricing";
+import AssetGroups from "./components/RiskPricing/AssetGroups";
 import { sortOutcomesByCategory } from "./components/RiskPricing/constants";
+import NoToAllStrip from "./components/RiskPricing/NoToAllStrip";
 
 export default function Home() {
   const { data, isLoading, isError, refetch, isRefetching } = useMarketData();
@@ -62,6 +62,15 @@ export default function Home() {
         : undefined,
     [data?.outcomes],
   );
+
+  // The outcome tail is always [...assets, "No To All", "Invalid"], and
+  // sortOutcomesByCategory pins those two to the end, so position is what
+  // separates them here as it does everywhere else on the risk path.
+  const assetOutcomes = useMemo(
+    () => sortedOutcomes?.slice(0, -2),
+    [sortedOutcomes],
+  );
+  const noToAllOutcome = sortedOutcomes?.at(-2);
 
   const [isOpen, toggleGuide] = useToggle(false);
   const [isOnboardingDone, setOnboardingDone] = useLocalStorage<boolean>(
@@ -137,23 +146,12 @@ export default function Home() {
         <div className="flex flex-col gap-4">
           <TradeWalletProvider>
             <ParticipateSection />
-            <div className="flex flex-col gap-4">
-              {sortedOutcomes
-                ? sortedOutcomes.map((outcome) => {
-                    if (isTwoStringsEqual(outcome.outcome, "invalid"))
-                      return null;
-                    return (
-                      <RiskPricing
-                        key={outcome.outcomeId}
-                        outcome={outcome}
-                        isNoToAll={
-                          outcome.outcomeIndex === sortedOutcomes.length - 2
-                        }
-                      />
-                    );
-                  })
-                : null}
-            </div>
+            {/* "No To All" is not a card in this list any more: it is the one
+                number every asset slider moves, so it is pinned above them
+                rather than sitting 33 cards further down. "Invalid" is never
+                traded and never shown - the slice drops both. */}
+            {noToAllOutcome ? <NoToAllStrip outcome={noToAllOutcome} /> : null}
+            {assetOutcomes ? <AssetGroups assets={assetOutcomes} /> : null}
             {hasPredictions ? (
               <div
                 className={clsx(
