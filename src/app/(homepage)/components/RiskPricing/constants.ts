@@ -169,6 +169,13 @@ export const MARKET_PD_TOOLTIP =
 // "No To All" is the opposite of a PD: it pays out when nothing defaults, so it
 // needs its own caption and explanation rather than the per-asset one.
 export const NO_TO_ALL_LABEL = "Market Estimate (Ann.)";
+/**
+ * Card header for the "No To All" slider: the outcome name plus what it means.
+ * Spelled out here rather than composed off the on-chain outcome name, so the
+ * casing is ours.
+ */
+export const NO_TO_ALL_HEADING =
+  "No To All - Probability that none of the assets listed default.";
 // Second paragraph covers the slider itself, which moves in tandem with the
 // asset sliders in both directions. The tooltip renders with
 // whitespace-pre-line, so the blank line survives.

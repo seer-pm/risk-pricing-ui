@@ -25,7 +25,7 @@ import { RiskPricingOutcome } from "@/hooks/useMarketData";
 import { Skeleton } from "@/components/Skeleton";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
-import { formatPd } from "@/utils";
+import { formatPd, SLIDER_PD_DECIMALS } from "@/utils";
 import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
 import {
@@ -220,7 +220,7 @@ const PredictionSlider = ({
   const displayValue = draftValue ?? prediction;
 
   const formatted = useCallback(
-    (scaled: number) => formatPd(fromScaledValue(scaled)),
+    (scaled: number) => formatPd(fromScaledValue(scaled), SLIDER_PD_DECIMALS),
     [fromScaledValue],
   );
 
@@ -350,7 +350,7 @@ const PredictionSlider = ({
               color: getReadableTextColor(isNoToAll ? NO_TO_ALL_COLOR : color),
             }}
           >
-            {formatPd(marketPercent)}
+            {formatPd(marketPercent, SLIDER_PD_DECIMALS)}
           </div>
 
           <span

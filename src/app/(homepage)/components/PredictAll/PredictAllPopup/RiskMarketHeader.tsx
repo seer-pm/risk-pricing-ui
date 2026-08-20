@@ -22,7 +22,7 @@ import CloseIcon from "@/assets/svg/close-icon.svg";
 import ArrowDown from "@/assets/svg/long-arrow-down.svg";
 import ArrowUp from "@/assets/svg/long-arrow-up.svg";
 
-import { isUndefined } from "@/utils";
+import { formatPd, isUndefined } from "@/utils";
 
 const RiskMarketHeader: React.FC = () => {
   const outcomes = useRiskPredictionStore((state) => state.outcomes);
@@ -116,9 +116,7 @@ const RiskMarketHeader: React.FC = () => {
                         Probability
                       </span>
                       <span className="text-klerosUIComponentsPrimaryText text-sm font-semibold sm:text-base">
-                        {prediction
-                          ? `${(prediction * 100).toFixed(3)}%`
-                          : "0%"}
+                        {formatPd((prediction ?? 0) * 100)}
                       </span>
                     </div>
                   </div>

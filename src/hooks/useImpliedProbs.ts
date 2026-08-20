@@ -50,10 +50,6 @@ export function yearlySurvivalToQuarterly(yearlySurvival: number): number {
   return yearlySurvival ** (1 / 4);
 }
 
-// Guard rails for the No To All inversion below: a survival probability of
-// exactly 0 or 1 has no finite proportional-hazard solution.
-const SURVIVAL_EPS = 1e-6;
-
 const clampProb = (p: number) => Math.min(1 - 1e-9, Math.max(0, p));
 
 /**
@@ -90,12 +86,20 @@ export function scaleProbsToSurvival(
   // vector alone is the right answer to a value that means nothing.
   if (!Number.isFinite(targetSurvival)) return probs;
 
-  // alpha blows up at both ends: S = 1 gives alpha = 0 (every risk wiped to
-  // exactly 0, unrecoverable), S = 0 gives alpha = Infinity.
-  const target = Math.min(
-    1 - SURVIVAL_EPS,
-    Math.max(SURVIVAL_EPS, targetSurvival),
-  );
+  // Both ends of the "No To All" track are answered directly rather than
+  // through alpha, which has no finite value there: S = 0 ("something defaults
+  // for sure") is the alpha -> Infinity limit, every asset at 1; S = 1
+  // ("nothing defaults") is the alpha -> 0 limit, every asset at 0. Nudging the
+  // target inside the range instead would leave the assets a hair off the ends
+  // of their own tracks, reading "<0.01%" rather than 0.
+  //
+  // Both stay recoverable: the resulting survival of exactly 0 or 1 lands on
+  // the even-spread branch below the next time this runs.
+  if (targetSurvival <= 0) return Array(n).fill(1);
+  if (targetSurvival >= 1) return Array(n).fill(0);
+
+  // Strictly inside (0, 1) from here, so ln(target) is finite and non-zero.
+  const target = targetSurvival;
 
   const survival = probs.reduce((acc, p) => acc * (1 - p), 1);
 

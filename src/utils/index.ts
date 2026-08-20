@@ -28,11 +28,22 @@ export const formatValue = (value: bigint, decimals = 18) => {
 };
 
 /**
- * Decimal places used for every probability-of-default figure in the UI.
- * PD runs from ~0.05% to 30%+ and small differences at the low end are
- * meaningful, so this errs on the precise side.
+ * Decimal places for every probability-of-default readout on the page.
  */
-export const PD_DECIMALS = 3;
+export const PD_DECIMALS = 2;
+
+/**
+ * The prediction sliders opt into an extra decimal: they are the one place the
+ * user is picking a value rather than reading one, and PD runs from ~0.05% to
+ * 30%+, so differences at the low end have to stay visible while dragging.
+ */
+export const SLIDER_PD_DECIMALS = 3;
+
+/**
+ * Below this a PD is float dust - the tail of a `prod(1 - p_i)` that is meant to
+ * be zero - rather than a real value, so it reads as a plain zero.
+ */
+const PD_ZERO_EPS = 1e-9;
 
 /**
  * @description The single formatter for probability-of-default values. Always
@@ -40,12 +51,21 @@ export const PD_DECIMALS = 3;
  * not pre-round, and must not use `Number(x.toFixed(n))`, which strips trailing
  * zeros and produces a ragged column.
  * @param probability PD as a percentage (e.g. 0.74 for 0.74%)
+ * @param decimals Defaults to {@link PD_DECIMALS}; the sliders pass
+ * {@link SLIDER_PD_DECIMALS}.
  */
-export const formatPd = (probability: number): string => {
-  if (probability > 0 && probability < 10 ** -PD_DECIMALS) {
-    return `<0.${"0".repeat(PD_DECIMALS - 1)}1%`;
+export const formatPd = (
+  probability: number,
+  decimals: number = PD_DECIMALS,
+): string => {
+  // Negated comparison so NaN lands here too, rather than rendering "NaN%".
+  if (!(probability > PD_ZERO_EPS)) {
+    return "0%";
   }
-  return `${probability.toFixed(PD_DECIMALS)}%`;
+  if (probability < 10 ** -decimals) {
+    return `<0.${"0".repeat(decimals - 1)}1%`;
+  }
+  return `${probability.toFixed(decimals)}%`;
 };
 
 /** @description USD amounts, with the sign where readers expect it. */
