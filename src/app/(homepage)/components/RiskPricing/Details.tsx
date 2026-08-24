@@ -183,7 +183,7 @@ export default function RiskPanel({
         <div className="px-6 pb-6">
           <div className="bg-klerosUIComponentsLightBackground flex flex-wrap items-center gap-x-8 gap-y-4 rounded-lg px-6 py-5">
             <a
-              href={`https://app.credora.network/assets/${key}`}
+              href={`https://app.credora.network/assets/${riskData.credora_slug}`}
               target="_blank"
               rel="noreferrer noopener"
               className="text-klerosUIComponentsPrimaryBlue flex items-center gap-2 text-base font-medium transition-opacity hover:opacity-80"

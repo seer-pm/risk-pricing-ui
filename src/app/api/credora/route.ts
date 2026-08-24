@@ -18,6 +18,16 @@ const METRIC_ORDER = [
   "Regulatory/Legal Profile",
 ];
 
+/**
+ * Assets this market lists that Credora doesn't rate under that name. Confirmed
+ * with Credora: weETH is the wrapped form of eETH and satUSD+ of satUSD, and
+ * they assign the same risk to each pair. Keys and values are lowercased names.
+ */
+const ASSET_RATING_ALIASES: Record<string, string> = {
+  weeth: "eeth",
+  "satusd+": "satusd",
+};
+
 interface CredoraRatingItem {
   id: string;
   address: string;
@@ -180,13 +190,24 @@ export async function GET() {
     const result: Record<string, RiskAssetData> = {};
     for (const item of items) {
       const risk_profiles = toRiskProfiles(item.riskProfiles ?? []);
-      result[item.name.toLowerCase()] = {
+      const credora_slug = item.name.toLowerCase();
+      result[credora_slug] = {
         metrics_rating: item.Metrics?.rating ?? "",
         address: item.address,
         rating_type: item.ratingType,
         avg_risk_score: averageScore(risk_profiles),
         risk_profiles,
+        credora_slug,
       };
+    }
+
+    // Credora ships no entry for these, so they inherit the source asset's
+    // rating. A real entry always wins, in case Credora starts listing them
+    // directly. The spread keeps credora_slug pointing at the rated asset, so
+    // the panel's "View on Credora" link still resolves.
+    for (const [alias, source] of Object.entries(ASSET_RATING_ALIASES)) {
+      if (result[alias] || !result[source]) continue;
+      result[alias] = { ...result[source] };
     }
 
     const res = NextResponse.json(result);

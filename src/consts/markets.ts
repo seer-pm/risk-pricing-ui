@@ -66,6 +66,8 @@ export interface RiskAssetData {
   metrics_rating: string;
   address: string;
   rating_type: string;
+  /** Credora's own key for the rated asset - not always the outcome's name. */
+  credora_slug: string;
   /** Null when Credora has published no scored metrics for the asset. */
   avg_risk_score: number | null;
   risk_profiles: RiskProfile[];
