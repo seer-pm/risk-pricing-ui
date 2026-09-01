@@ -1,3 +1,5 @@
+import ShieldCheck from "@/assets/svg/shield-check.svg";
+
 import { cn, formatPd } from "@/utils";
 
 import { logScalePercent, zoneAxis, zones } from "../constants";
@@ -166,38 +168,58 @@ export default function MarketEstimateRisk({
 
       {/* Zones: always visible below the scroll area. Same left/right gutters
           as the scroll region so the axis stays aligned. */}
-      <RiskZoneBar size="lg" className={cn("mt-10 mr-2", GUTTER)} />
+      <RiskZoneBar size="lg" className={cn("mt-12 mr-2", GUTTER)} />
 
       {noToAllProbability !== undefined && (
-        <div className="mt-10 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-950">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                NO TO ALL
-              </div>
+        /* A full-width band rather than a card: rules top and bottom, no sides
+           and no radius. As a bordered card it read as one more item in the
+           list above it, when it is really the summary OF that list.
 
-              <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-500">
-                Chance that no listed asset defaults
-              </div>
-            </div>
-
+           Only the shield is green. The figures take the ordinary primary and
+           secondary text colours - this is a readout under a chart, not a
+           control, and the sticky NoToAllStrip is where the same number is
+           editable. */
+        <div className="bg-klerosUIComponentsSuccessLight border-green-2 dark:border-klerosUIComponentsSuccess mt-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-y px-4 py-1">
+          <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span aria-hidden="true" className="text-2xl">
-                🛡️
-              </span>
+              {/* h-8 w-auto, not size-8: the shield is 27.7x32, and forcing it
+                  square would letterbox it inside its own box. */}
+              <ShieldCheck aria-hidden="true" className="h-8 w-auto shrink-0" />
 
-              <div className="flex flex-col items-end leading-tight">
-                <span className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
-                  {formatPd(noToAllProbability)}{" "}
-                  <span className="text-xs font-semibold">(Ann.)</span>
+              {/* tabular-nums: these digits are redrawn as the user drags the
+                  sliders above, and proportional figures make the row twitch. */}
+              <div className="flex items-center gap-1">
+                <span className="text-klerosUIComponentsPrimaryText text-2xl font-semibold tabular-nums">
+                  {formatPd(noToAllProbability)}
                 </span>
-                {noToAllQuarterlyProbability !== undefined && (
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-500">
-                    {formatPd(noToAllQuarterlyProbability)} (Quart.)
-                  </span>
-                )}
+                <span className="text-klerosUIComponentsSecondaryText text-xs">
+                  (Ann.)
+                </span>
               </div>
             </div>
+
+            {noToAllQuarterlyProbability !== undefined && (
+              <div className="flex items-center gap-1">
+                <span className="text-klerosUIComponentsPrimaryText text-xs font-semibold tabular-nums">
+                  {formatPd(noToAllQuarterlyProbability)}
+                </span>
+                <span className="text-klerosUIComponentsSecondaryText text-xs">
+                  (Quart.)
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-klerosUIComponentsSecondaryText text-xs">
+              Chance that no listed asset defaults
+            </span>
+            <span className="text-klerosUIComponentsSecondaryText text-xs">
+              &gt;
+            </span>
+            <span className="text-klerosUIComponentsPrimaryText text-sm font-semibold">
+              No to All
+            </span>
           </div>
         </div>
       )}

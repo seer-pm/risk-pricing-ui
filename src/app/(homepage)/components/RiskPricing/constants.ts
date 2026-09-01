@@ -103,42 +103,58 @@ export const NO_TO_ALL_COLOR = "#059669";
 /** Filled slider track for "No To All" (assets use a pale green). */
 export const NO_TO_ALL_TRACK_COLOR = "#A7F3D0";
 
-type Zone = {
+export type Zone = {
+  /** Base word only - RiskZoneBar appends " RISK" once the track has room. */
   label: string;
-  emoji: string;
   from: number;
   to: number;
+  /**
+   * Pastel pair used to FILL an area at this risk level: the asset bars in
+   * MarketEstimateRisk and the market pin on a PredictionSlider.
+   *
+   * Deliberately NOT the legend palette below. These fills are wide, and the
+   * asset bars carry a category colour at 70% opacity on top of them, which a
+   * saturated pair would drown.
+   */
   colors: string[];
+  /**
+   * Saturated colour for the legend LINE and its icon pill.
+   *
+   * The legend is a thin rule rather than a filled band, and the pastel pair
+   * above is all but invisible at that weight against the light background -
+   * saturation is what carries the colour once the height is gone.
+   */
+  accent: string;
 };
 
 export const zones: Zone[] = [
   {
-    label: "SAFE",
-    emoji: "😊",
+    label: "LOW",
     from: 0,
     to: 2,
     colors: ["#bbf7d0", "#dcfce7"],
+    accent: "#00C42B",
   },
   {
-    label: "CAUTION",
-    emoji: "🙄",
+    label: "MODERATE",
     from: 2,
     to: 5,
     colors: ["#fef9c3", "#fed7aa"],
+    accent: "#FFD500",
   },
   {
-    label: "WARNING",
-    emoji: "😬",
+    label: "HIGH",
     from: 5,
     to: 10,
     colors: ["#fbcfe8", "#f9a8d4"],
+    accent: "#FF8000",
   },
   {
-    label: "DANGER",
-    emoji: "😱",
+    label: "CRITICAL",
     from: 10,
     to: 100,
     colors: ["#f9a8d4", "#fb7185"],
+    accent: "#F60C36",
   },
 ];
 export const zoneAxis = zones
@@ -162,6 +178,41 @@ export const logScalePercent = (value: number): number => {
 /** Inverse of {@link logScalePercent} - track position back to a PD. */
 export const logScaleToValue = (percent: number): number =>
   Math.pow(10, (percent / MAX_RISK) * Math.log10(MAX_RISK + 1)) - 1;
+
+/**
+ * Track position of a zone's centre, 0..100.
+ *
+ * The legend places a zone's icon and label here AND anchors that zone's
+ * gradient stop here, so a pill always sits on solid colour of its own accent -
+ * icon and line cannot drift apart.
+ *
+ * Declared below logScalePercent on purpose: ZONE_LEGEND_GRADIENT runs it at
+ * module load, and a const arrow function is still in its TDZ above this point.
+ */
+export const zoneMidpointPercent = (zone: Zone): number =>
+  (logScalePercent(zone.from) + logScalePercent(zone.to)) / 2;
+
+/**
+ * One continuous ramp across the whole legend track.
+ *
+ * A zone reaches its own accent at its icon - the band midpoint - and then holds
+ * it flat to the end of the band, so every pill sits on solid colour of its own
+ * accent and all the blending happens in the gaps between pills. The first zone
+ * opens on its accent and the last runs out to 100%, which leaves a flat green
+ * start and a flat red tail with three transitions in between.
+ *
+ * Nothing here marks a zone boundary; the axis ticks below the track do that.
+ *
+ * Declared below logScalePercent and zoneMidpointPercent on purpose: this runs
+ * both at module load, and a const arrow function is still in its TDZ above.
+ */
+export const ZONE_LEGEND_GRADIENT = `linear-gradient(to right, ${[
+  `${zones[0].accent} 0%`,
+  ...zones.flatMap((zone) => [
+    `${zone.accent} ${zoneMidpointPercent(zone)}%`,
+    `${zone.accent} ${logScalePercent(zone.to)}%`,
+  ]),
+].join(", ")})`;
 
 export const MARKET_PD_TOOLTIP =
   "The market's current consensus on the annualized probability this asset defaults, implied by current trading prices.";

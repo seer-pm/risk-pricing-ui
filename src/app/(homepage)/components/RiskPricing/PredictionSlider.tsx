@@ -213,9 +213,10 @@ const PredictionSlider = ({ outcome }: { outcome: RiskPricingOutcome }) => {
       </div>
 
       {/* mt-14: when the prediction comes near the market, the marker slips
-          32px below the track. This gap is the room it lands in — a smaller one
-          and the pill/caption would cover the emoji bubbles, which themselves
-          poke 16px above the bar. */}
+          32px below the track. This gap is the room it lands in. The legend's
+          icon pills poke 10px above its line (a 24px pill centred on a 4px
+          track), so the slipped caption has ~13px of clearance; mt-12 would
+          cut that to ~5px. */}
       <RiskZoneBar size="sm" className="mt-14" />
     </div>
   );
