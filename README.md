@@ -20,6 +20,39 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Public API
+
+`GET /api/v1/risk-pricing` returns the current market estimates the UI shows, so they can be used without scraping the page. It is open to any origin (CORS `*`). Results are cached for 5 minutes, and the underlying pool data is hourly.
+
+```jsonc
+{
+  "marketId": "0x…",
+  "chainId": 100,
+  "collateral": "0x…",        // sDAI
+  "updatedAt": 1787264050,    // unix seconds of the latest pool data used
+  "assets": [
+    {
+      "index": 0,
+      "name": "weETH",
+      "symbol": "WEETHPD",
+      "outcomeToken": "0x…",
+      "price": 0.00021,       // outcome token price in collateral
+      "pdQuarterly": 0.0002,  // implied probability of default, quarterly
+      "pdYearly": 0.0009      // same, annualised: 1 - (1 - pdQuarterly)^4
+    }
+  ],
+  "noToAll": {
+    "index": 33,
+    "outcomeToken": "0x…",
+    "price": 0.74,
+    "probability": 0.465      // yearly chance that no listed asset defaults
+  },
+  "solverMaxErr": 2.4e-17     // residual of the price → probability solve
+}
+```
+
+All probabilities are fractions in [0, 1]. If an upstream source fails, the endpoint returns `502` with `{ "error": "…" }`.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
