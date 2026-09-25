@@ -21,11 +21,13 @@ const METRIC_ORDER = [
 /**
  * Assets this market lists that Credora doesn't rate under that name. Confirmed
  * with Credora: weETH is the wrapped form of eETH and satUSD+ of satUSD, and
- * they assign the same risk to each pair. Keys and values are lowercased names.
+ * they assign the same risk to each pair. BUIDL-I is listed as plain BUIDL.
+ * Keys and values are lowercased names.
  */
 const ASSET_RATING_ALIASES: Record<string, string> = {
   weeth: "eeth",
   "satusd+": "satusd",
+  "buidl-i": "buidl",
 };
 
 interface CredoraRatingItem {
