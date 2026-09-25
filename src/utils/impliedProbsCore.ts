@@ -548,3 +548,23 @@ export function solveProbsSync(targetPrices: number[]): {
   if (!result) throw new Error("Solver finished without a result");
   return result;
 }
+
+/** Server-side counterpart of solveProbsBatchAsync: one solve per price row. */
+export function solveProbsBatchSync(targetPricesSeries: number[][]): {
+  probs: number[][];
+  maxErrs: number[];
+} {
+  let result: { probs: number[][]; maxErrs: number[] } | undefined;
+  const self: {
+    postMessage: (msg: { type: string } & Record<string, unknown>) => void;
+    onmessage?: (e: { data: unknown }) => void;
+  } = {
+    postMessage: (msg) => {
+      if (msg.type === "batchDone") result = msg as unknown as typeof result;
+    },
+  };
+  new Function("self", WORKER_SRC)(self);
+  self.onmessage?.({ data: { type: "batch", targetPricesSeries } });
+  if (!result) throw new Error("Solver finished without a result");
+  return result;
+}

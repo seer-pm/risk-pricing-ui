@@ -92,6 +92,34 @@ export const marketMetadata = {
 export const RISK_PRICING_MARKET_ID =
   "0xc84786B06390F11dED0DD362E27Fc881B540e6F2";
 
+export interface RiskPricingMarketInfo {
+  id: Address;
+  /** e.g. "2026-Q3". A quarter can hold several markets. */
+  quarter: string;
+  /** Unix seconds bounding the market's price history. */
+  startTime: number;
+  endTime: number;
+}
+
+// Every market the public API serves. Each one is addressed by id on its own;
+// nothing assumes one market per quarter. RISK_PRICING_MARKET_ID is the default.
+export const RISK_PRICING_MARKETS: RiskPricingMarketInfo[] = [
+  {
+    id: RISK_PRICING_MARKET_ID,
+    quarter: "2026-Q3",
+    startTime,
+    endTime,
+  },
+];
+
+/** The default market when `id` is omitted; undefined for unknown ids. */
+export const getRiskPricingMarket = (
+  id?: string | null,
+): RiskPricingMarketInfo | undefined => {
+  const target = (id || RISK_PRICING_MARKET_ID).toLowerCase();
+  return RISK_PRICING_MARKETS.find((m) => m.id.toLowerCase() === target);
+};
+
 export const markets: Array<IMarket> = [
   {
     name: "Judge Dredd (1995)",
