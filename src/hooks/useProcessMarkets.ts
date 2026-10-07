@@ -23,6 +23,16 @@ export type ProcessedMarket = {
   difference: number;
   /** Human-readable label, used only to report skipped legs. */
   symbol?: string;
+  /** Pool spot and the price this leg is trying to reach. Risk market only. */
+  currentPrice?: number;
+  targetPrice?: number;
+  /** Pool swap fee as a fraction (0.0016 = 0.16%). Risk market only. */
+  fee?: number;
+  /** False when the pool's liquidity ends before the target. Risk market only. */
+  targetReached?: boolean;
+  /** Whether the user moved this outcome, as opposed to it only following
+   *  the others through the pricing model. Risk market only. */
+  isUserPrediction?: boolean;
 };
 
 interface IProcessMarkets {

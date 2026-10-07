@@ -30,6 +30,7 @@ interface IPredictSteps {
   isMakingPrediction: boolean;
   isPredictionSuccessful: boolean;
   chunkProgressMessage?: string;
+  tradeNotes?: string[];
   error?: string;
 }
 
@@ -47,6 +48,7 @@ const PredictSteps: React.FC<IPredictSteps> = ({
   isMakingPrediction,
   isPredictionSuccessful,
   chunkProgressMessage,
+  tradeNotes,
   error,
 }) => {
   const predictionProgressText = useMemo(() => {
@@ -129,6 +131,20 @@ const PredictSteps: React.FC<IPredictSteps> = ({
             : undefined,
     });
 
+    if (tradeNotes && tradeNotes.length > 0) {
+      steps.push({
+        title: "Worth knowing",
+        subtitle: (
+          <span className="break-words whitespace-pre-wrap">
+            {tradeNotes.join("\n")}
+          </span>
+        ) as unknown as string,
+        variant: "#c98a00",
+        party: "",
+        Icon: CircleOutline,
+      });
+    }
+
     if (!isUndefined(error)) {
       steps.push({
         title: "Prediction failed!",
@@ -155,6 +171,7 @@ const PredictSteps: React.FC<IPredictSteps> = ({
     predictionProgressText,
     isProcessingMarkets,
     isLoadingQuotes,
+    tradeNotes,
     error,
   ]);
 

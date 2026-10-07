@@ -54,6 +54,9 @@ export const useDepositToTradeExecutor = (onSuccess?: () => unknown) => {
     onSuccess() {
       onSuccess?.();
       queryClient.refetchQueries({ queryKey: ["useTokenBalance"] });
+      // wagmi's useBalance: an xDAI deposit leaves the account's native
+      // balance stale, and the predict popup then counts the deposit twice
+      queryClient.invalidateQueries({ queryKey: ["balance"] });
     },
   });
 };

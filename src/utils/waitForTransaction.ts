@@ -1,6 +1,11 @@
-import { waitForTransactionReceipt } from "@wagmi/core";
+import { getPublicClient } from "@wagmi/core";
+import { BaseError } from "viem";
 
 import { config } from "@/wagmiConfig";
+
+import { DEFAULT_CHAIN } from "@/consts";
+
+import { formatError } from "./formatError";
 
 type TransactionFn = () => Promise<`0x${string}` | undefined>;
 
@@ -14,6 +19,38 @@ export type TransactionResult =
       hash?: `0x${string}`;
       error: Error;
     };
+
+/**
+ * Why a mined transaction reverted, found by replaying it as its own sender
+ * against the block before it.
+ *
+ * wagmi's waitForTransactionReceipt does a replay too, but without the sender:
+ * every call into a TradeExecutor then fails its onlyOwner check first, so any
+ * revert at all was reported as "Caller is not the owner".
+ */
+const getRevertReason = async (hash: `0x${string}`, blockNumber: bigint) => {
+  const publicClient = getPublicClient(config, { chainId: DEFAULT_CHAIN.id });
+  if (!publicClient) return undefined;
+  try {
+    const tx = await publicClient.getTransaction({ hash });
+    await publicClient.call({
+      account: tx.from,
+      to: tx.to,
+      data: tx.input,
+      value: tx.value,
+      gas: tx.gas,
+      blockNumber: blockNumber - 1n,
+    });
+    // the replay passed, so the cause was specific to its place in the block
+    return undefined;
+  } catch (e) {
+    if (e instanceof BaseError) {
+      if (/out of gas/i.test(e.message)) return "out of gas";
+      return formatError(e);
+    }
+    return undefined;
+  }
+};
 
 /**
  * Wraps a wagmi write contract call to wait for the transaction to be confirmed.
@@ -32,13 +69,21 @@ export const waitForTransaction = async (
       return { status: false, error };
     }
 
-    const receipt = await waitForTransactionReceipt(config, {
+    const publicClient = getPublicClient(config, { chainId: DEFAULT_CHAIN.id });
+    if (!publicClient) {
+      return { status: false, hash, error: new Error("No RPC client.") };
+    }
+
+    const receipt = await publicClient.waitForTransactionReceipt({
       hash,
       confirmations: 2,
     });
 
     if (receipt.status === "reverted") {
-      const error = new Error(`Transaction was reverted. (${hash})`);
+      const reason = await getRevertReason(hash, receipt.blockNumber);
+      const error = new Error(
+        `Transaction was reverted${reason ? `: ${reason}` : "."} (${hash})`,
+      );
       return { status: false, hash, error };
     }
 

@@ -128,13 +128,20 @@ export const parseRiskCSV = (csvText: string): Record<string, number> => {
     if (!asset || !probabilityStr) {
       throw new Error(`Row ${i + 2}: All columns must have values`);
     }
-    // Validate probability
-    const probability = parseFloat(probabilityStr);
-    if (isNaN(probability)) {
+    // Validate probability. "55%" is a percentage, a bare number is a
+    // fraction of 1 (which is what the export writes). parseFloat used to
+    // drop the "%" silently, turning "0.5%" into a 50% prediction.
+    const isPercent = probabilityStr.endsWith("%");
+    const numberStr = isPercent
+      ? probabilityStr.slice(0, -1).trim()
+      : probabilityStr;
+    const parsedNumber = numberStr === "" ? NaN : Number(numberStr);
+    if (isNaN(parsedNumber)) {
       throw new Error(
         `Row ${i + 2}: Probability "${probabilityStr}" is not a valid number`,
       );
     }
+    const probability = isPercent ? parsedNumber / 100 : parsedNumber;
 
     if (probability < 0) {
       throw new Error(`Row ${i + 2}: Probability cannot be negative`);
@@ -143,7 +150,7 @@ export const parseRiskCSV = (csvText: string): Record<string, number> => {
     const maxProbability = 1;
     if (probability > maxProbability) {
       throw new Error(
-        `Row ${i + 2}: Probability cannot be greater than the max value of ${maxProbability}`,
+        `Row ${i + 2}: Probability cannot be greater than ${maxProbability} (or 100%)`,
       );
     }
 

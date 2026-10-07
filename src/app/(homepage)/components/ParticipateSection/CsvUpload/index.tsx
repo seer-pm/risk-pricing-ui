@@ -40,20 +40,31 @@ const CsvUploadPopup: React.FC<ICsvUploadPopup> = ({
       // is never predicted, so a row for either is ignored rather than written
       // into the store where it would contradict the asset predictions.
       const assets = outcomes.slice(0, -2);
+      const derived = outcomes.slice(-2);
+      const unknown: string[] = [];
       Object.entries(records).map(([asset, probability]) => {
         const outcomeId = assets.find((outcome) =>
           isTwoStringsEqual(outcome.outcome, asset),
         )?.outcomeId;
         if (outcomeId) {
           predictions[outcomeId] = probability;
+        } else if (
+          !derived.some((outcome) => isTwoStringsEqual(outcome.outcome, asset))
+        ) {
+          unknown.push(asset);
         }
       });
+      // a misspelt asset used to be dropped without a word, so the file
+      // looked loaded while part of it was not
+      if (unknown.length > 0) {
+        throw new Error(`Unknown asset: ${unknown.join(", ")}`);
+      }
       setRiskPredictions(predictions);
       toggleIsOpen();
     } catch (err) {
       if (err instanceof Error) setParseError(err.message);
     }
-  }, [file]);
+  }, [file, outcomes, setRiskPredictions, toggleIsOpen]);
 
   return (
     <Modal

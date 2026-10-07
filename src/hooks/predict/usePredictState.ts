@@ -13,6 +13,8 @@ export interface PredictState {
   isLoadingQuotes: boolean;
   isPredictionSuccessful: boolean;
   chunkProgressMessage?: string;
+  /** What the user should know about a prediction that went through. */
+  tradeNotes?: string[];
   frozenToBeAdded?: bigint;
   frozenToBeAddedSeerCredits?: bigint;
   error?: string;
@@ -30,6 +32,7 @@ const initialState: PredictState = {
   isPredictionSuccessful: false,
   isSending: false,
   chunkProgressMessage: undefined,
+  tradeNotes: undefined,
   frozenToBeAdded: undefined,
   frozenToBeAddedSeerCredits: undefined,
   createdTradeWallet: undefined,

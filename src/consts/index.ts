@@ -87,6 +87,12 @@ export const VOLUME_MIN_WEI = parseUnits(String(VOLUME_MIN), DECIMALS);
 /** Buffer applied to collateral allocation for batch predictions to account
  *  for swap slippage chain effects (0.98 = 2% safety margin) */
 export const PREDICTION_SLIPPAGE_BUFFER = 0.98;
+/** Merging 35 outcome tokens back costs ~4.6M gas, so complete sets smaller
+ *  than this are left in the wallet rather than merged for their collateral */
+export const MERGE_MIN_WEI = parseUnits("0.01", DECIMALS);
+/** An outcome the user did not move only trades when the coupling between
+ *  outcomes shifts its price by more than this fraction (0.005 = 0.5%) */
+export const COUPLING_MIN_MOVE = 0.005;
 export const MIN_SEER_CREDITS_USAGE = 0.01;
 export const MAX_MARKETS_PER_BATCH = Number(
   process.env.NEXT_PUBLIC_MAX_MARKETS_PER_BATCH ?? 10,

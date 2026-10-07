@@ -47,7 +47,8 @@ export default function Home() {
         const marketProbability = outcomeMap.get(
           predictionOutcomeId as Address,
         );
-        return prediction && prediction !== marketProbability;
+        // not a truthiness test: a PD dragged to exactly 0 is a prediction
+        return prediction !== undefined && prediction !== marketProbability;
       },
     );
   }, [predictions, data?.outcomes]);

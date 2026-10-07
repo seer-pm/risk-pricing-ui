@@ -107,7 +107,10 @@ export const WithdrawInterface: React.FC<WithdrawInterfaceProps> = ({
               (selectedToken === TokenType.xDAI
                 ? !balanceXDai
                 : !balanceData) ||
-              balance === 0n
+              balance === 0n ||
+              // the input already says "Not enough balance", but the button
+              // still sent a transaction that could only revert
+              (amount ?? 0n) > balance
             }
             isLoading={withdrawFromTradeExecutor.isPending}
           />

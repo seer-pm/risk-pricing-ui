@@ -9,17 +9,31 @@ import { useRiskPredictionStore } from "@/store/riskMarketStore";
 import { useCreateTradeExecutor } from "@/hooks/tradeWallet/useCreateTradeExecutor";
 import { useDepositToTradeExecutor } from "@/hooks/tradeWallet/useDepositToTradeExecutor";
 import { fetchTokenBalance } from "@/hooks/useTokenBalance";
+import { fetchTokensBalances } from "@/hooks/useTokenBalances";
 
-import { isUndefined } from "@/utils";
+import { formatValue, isUndefined } from "@/utils";
 import { formatError } from "@/utils/formatError";
-import { GetQuotesResult, getSDaiToWXdaiData } from "@/utils/getQuotes";
+import {
+  GetQuotesResult,
+  getSDaiToWXdaiData,
+  PartialLeg,
+  SkippedLeg,
+} from "@/utils/getQuotes";
 import { getRiskQuotes } from "@/utils/getRiskQuotes";
-import { processRiskMarket } from "@/utils/processRiskMarket";
+import {
+  fetchRiskPool,
+  processRiskMarket,
+  RiskPool,
+} from "@/utils/processRiskMarket";
 
 import { collateral } from "@/consts";
 
 import { useTradeExecutorPredictRiskOutcomes } from "../tradeWallet/useTradeExecutorPredictRiskOutcomes";
-import { computePrices, yearlyToQuarterly } from "../useImpliedProbs";
+import {
+  computePrices,
+  solveProbsAsync,
+  yearlyToQuarterly,
+} from "../useImpliedProbs";
 
 import { usePredictState } from "./usePredictState";
 
@@ -42,11 +56,33 @@ interface UsePredictAllFlowArgs {
   /** Total credits to swap (EOA + wallet) - used for credit<>sDAI quote */
   creditsToSwap?: bigint;
 
-  walletUnderlyingBalances?: bigint[];
-  walletTokensBalances?: bigint[];
+  /** Outcome token balances of the trade wallet, "Invalid" included. */
+  walletOutcomeBalances?: bigint[];
 
   onDone: () => void; // called after success + reset
 }
+
+// How close the solver has to get to the live pool prices before its result is
+// trusted as the market baseline. Matches the solver's own acceptance bar.
+const MARKET_SOLVE_TOL = 1e-8;
+
+const skippedNote = ({ symbol, reason }: SkippedLeg) => {
+  switch (reason) {
+    case "no-liquidity":
+      return `${symbol}: not traded - the pool has no liquidity left in that direction.`;
+    case "no-route":
+      return `${symbol}: not traded - no route available.`;
+    case "below-minimum":
+      return `${symbol}: not traded - too small with the collateral available.`;
+    default:
+      return `${symbol}: not traded - the market is already at your prediction (or within the pool fee of it).`;
+  }
+};
+
+const partialNote = ({ symbol, reason }: PartialLeg) =>
+  reason === "pool-liquidity"
+    ? `${symbol}: only partly moved - the pool's liquidity ends before your prediction.`
+    : `${symbol}: only partly moved - not enough collateral or tokens to go all the way.`;
 
 export function usePredictRiskFlow({
   account,
@@ -58,8 +94,7 @@ export function usePredictRiskFlow({
   toBeAddedXDai,
   toBeAddedSeerCredits,
   creditsToSwap,
-  walletUnderlyingBalances,
-  walletTokensBalances,
+  walletOutcomeBalances,
   onDone,
 }: UsePredictAllFlowArgs) {
   const queryClient = useQueryClient();
@@ -70,28 +105,11 @@ export function usePredictRiskFlow({
   // against pool state the first one is about to invalidate, so its buy leg
   // reverts on slippage after the whole batch has already executed.
   const isSubmittingRef = useRef(false);
+  // the delayed clean-up after a failure must not fire into a later attempt
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const predictions = useRiskPredictionStore((state) => state.riskPredictions);
   const outcomes = useRiskPredictionStore((state) => state.outcomes);
-  // predictions/outcome.probability are yearly PD; the pools trade on
-  // quarterly-implied prices, so convert before pricing the trade.
-  //
-  // Solve over the assets only. "No To All" is a survival probability, not a
-  // PD, so including it here (slice(0, -1)) fed computePrices a 34th element
-  // it treated as another asset default: that priced No To All near 0.12
-  // against a pool at ~0.71, so it was classified "sell" and dumped to the
-  // bottom of its range on every submission, and it biased every asset target
-  // downwards. priceY is the correct No To All target, and is what
-  // useMarketData already recomputes for display.
-  const assetProbs = outcomes
-    .slice(0, -2)
-    .map(
-      (outcome) => predictions[outcome.outcomeId] ?? outcome.probability ?? 0,
-    );
-  const { priceY, prices } = computePrices(assetProbs.map(yearlyToQuarterly));
-  // index 0..n-1 = assets, index n = "No To All". "Invalid" is never traded,
-  // so this lines up with the slice(0, -1) the trade loop below iterates.
-  const predictedPrices = [...prices, priceY];
   const createTradeExecutor = useCreateTradeExecutor();
   const depositToTradeExecutor = useDepositToTradeExecutor(() => {});
   const tradeExecutorPredictAll = useTradeExecutorPredictRiskOutcomes();
@@ -115,50 +133,151 @@ export function usePredictRiskFlow({
     setFlag,
   ]);
 
-  const hasWalletCollateral = useMemo(() => {
-    return (
-      checkTradeExecutorResult?.isCreated &&
-      walletUnderlyingBalances &&
-      walletUnderlyingBalances.every((v) => v > 0n)
-    );
-  }, [checkTradeExecutorResult?.isCreated, walletUnderlyingBalances]);
-
   const hasDepositCollateral = useMemo(() => {
     return (sDAIDepositAmount ?? 0n) + (toBeAddedSeerCredits ?? 0n) > 0n;
   }, [sDAIDepositAmount, toBeAddedSeerCredits]);
 
+  // An existing position is collateral in its own right: selling part of it
+  // funds the rest of the prediction, which is how a view is changed without
+  // adding capital.
   const hasPosition = useMemo(() => {
-    return walletTokensBalances?.some((v) => v > 0n);
-  }, [walletTokensBalances]);
+    return (
+      checkTradeExecutorResult?.isCreated &&
+      walletOutcomeBalances?.some((v) => v > 0n)
+    );
+  }, [checkTradeExecutorResult?.isCreated, walletOutcomeBalances]);
+
+  // assets + "No To All". "Invalid" is never traded.
+  const tradedOutcomes = useMemo(() => outcomes.slice(0, -1), [outcomes]);
+
+  const loadPools = () =>
+    Promise.all(
+      tradedOutcomes.map((outcome) =>
+        fetchRiskPool({
+          underlying: outcome.collateral,
+          outcome: outcome.outcomeId,
+          // the name the user sees on the card, for error and note text
+          symbol: outcome.outcome,
+        }),
+      ),
+    );
+
+  /**
+   * Target price per traded outcome, measured against the pools as they are
+   * right now rather than against the page's market estimate, which is as old
+   * as the last page load.
+   *
+   * predictions/outcome.probability are yearly PD; the pools trade on
+   * quarterly-implied prices, so convert before pricing the trade.
+   *
+   * Solve over the assets only. "No To All" is a survival probability, not a
+   * PD, so it is never fed to computePrices as another asset; its model price
+   * is priceY.
+   *
+   * An asset the user has not moved is priced from the live pool, so it only
+   * trades by the amount the coupling between outcomes implies.
+   *
+   * "No To All" is traded relative to its own pool. The market does not have
+   * to be internally consistent - the asset pools can imply one survival
+   * probability while the "No To All" pool trades at another - and aiming at
+   * the model's priceY outright spent the user's collateral closing that gap:
+   * it bought "No To All" on every submission, including ones where the user
+   * had dragged it down. Scaling the pool price by how far the user moved the
+   * implied survival keeps the direction they asked for, and leaves the pool
+   * alone when they changed nothing.
+   */
+  const buildTargets = async (pools: RiskPool[]) => {
+    const assets = tradedOutcomes.slice(0, -1);
+    const assetPrices = pools.slice(0, -1).map((pool) => pool.currentPrice);
+    const noToAllPrice = pools[pools.length - 1].currentPrice;
+
+    // fall back to the page's estimate if the live solve does not converge
+    let marketProbs = assets.map((asset) =>
+      yearlyToQuarterly(asset.probability ?? 0),
+    );
+    try {
+      const solved = await solveProbsAsync(noToAllPrice, assetPrices);
+      if (solved.maxErr < MARKET_SOLVE_TOL) marketProbs = solved.probs;
+    } catch {
+      // keep the fallback
+    }
+
+    const isMoved = assets.map(
+      (asset) =>
+        predictions[asset.outcomeId] !== undefined &&
+        predictions[asset.outcomeId] !== asset.probability,
+    );
+    const userProbs = assets.map((asset, index) =>
+      isMoved[index]
+        ? yearlyToQuarterly(predictions[asset.outcomeId])
+        : marketProbs[index],
+    );
+
+    const market = computePrices(marketProbs);
+    const user = computePrices(userProbs);
+    const noToAllTarget =
+      market.priceY > 0
+        ? noToAllPrice * (user.priceY / market.priceY)
+        : user.priceY;
+
+    // index 0..n-1 = assets, index n = "No To All", lining up with
+    // tradedOutcomes
+    return { targets: [...user.prices, noToAllTarget], isMoved };
+  };
+
+  const finish = () => {
+    onDone();
+    reset();
+    queryClient.refetchQueries({ queryKey: ["useTicksData"] });
+    // the page's market estimate is what the next prediction is compared
+    // against, and this trade has just moved it
+    queryClient.refetchQueries({ queryKey: ["useMarketData"] });
+  };
 
   const handlePredict = async () => {
     if (isUndefined(account) || isUndefined(checkTradeExecutorResult)) return;
     if (isSubmittingRef.current) return;
 
-    const snapshot: {
-      initialSDAIDeposit?: bigint;
-      initialToBeAdded?: bigint;
-      initialToBeAddedXDai?: bigint;
-      initialToBeAddedSeerCredits?: bigint;
-    } = {
-      initialSDAIDeposit: sDAIDepositAmount,
-      initialToBeAdded: toBeAdded,
-      initialToBeAddedXDai: toBeAddedXDai,
-      initialToBeAddedSeerCredits: toBeAddedSeerCredits,
+    const snapshot = {
+      sDAIDeposit: sDAIDepositAmount ?? 0n,
+      toBeAdded,
+      toBeAddedXDai,
+      toBeAddedSeerCredits,
+      creditsToSwap: creditsToSwap ?? 0n,
     };
     setFlag("frozenToBeAdded", toBeAdded);
     setFlag("frozenToBeAddedSeerCredits", toBeAddedSeerCredits);
 
-    if (!hasWalletCollateral && !hasDepositCollateral && !hasPosition) {
-      setFlag("error", "Require collateral to trade");
+    if (tradedOutcomes.length < 2) {
+      setFlag("error", "Market data is still loading, please try again.");
       return;
     }
 
+    if (!hasDepositCollateral && !hasPosition) {
+      setFlag(
+        "error",
+        "Enter an amount to predict with. sDAI already in your Trade Wallet is used before anything is taken from your wallet.",
+      );
+      return;
+    }
+
+    clearTimeout(resetTimerRef.current);
     setFlag("error", undefined);
+    setFlag("tradeNotes", undefined);
     setFlag("isSending", true);
     isSubmittingRef.current = true;
 
     try {
+      // Read the pools before anything goes on chain. If the market data is
+      // unreachable the prediction cannot be priced, and finding that out
+      // after the wallet was created and funded left the user's money moved
+      // for nothing.
+      setFlag("chunkProgressMessage", "Checking market data...");
+      setFlag("isProcessingMarkets", true);
+      await loadPools();
+      setFlag("isProcessingMarkets", false);
+      setFlag("chunkProgressMessage", undefined);
+
       let tradeWallet = tradeExecutor;
 
       // create wallet if needed
@@ -186,14 +305,14 @@ export function usePredictRiskFlow({
 
       // deposit SeerCredits if needed
       if (
-        !isUndefined(snapshot.initialToBeAddedSeerCredits) &&
-        snapshot.initialToBeAddedSeerCredits > 0n
+        !isUndefined(snapshot.toBeAddedSeerCredits) &&
+        snapshot.toBeAddedSeerCredits > 0n
       ) {
         setFlag("isAddingSeerCredits", true);
 
         await depositToTradeExecutor.mutateAsync({
           token: foresightCreditsAddress,
-          amount: snapshot.initialToBeAddedSeerCredits,
+          amount: snapshot.toBeAddedSeerCredits,
           tradeExecutor: tradeWallet,
           isXDai: false,
         });
@@ -203,116 +322,165 @@ export function usePredictRiskFlow({
       }
 
       // deposit sDAI/xDAI if needed
-      if (
-        !isUndefined(snapshot.initialToBeAdded) &&
-        snapshot.initialToBeAdded > 0n
-      ) {
+      if (snapshot.toBeAdded > 0n) {
         setFlag("isAddingCollateral", true);
 
         await depositToTradeExecutor.mutateAsync({
           token: collateral.address,
-          amount: isXDai
-            ? (snapshot.initialToBeAddedXDai ?? 0n)
-            : snapshot.initialToBeAdded,
+          amount: isXDai ? (snapshot.toBeAddedXDai ?? 0n) : snapshot.toBeAdded,
           tradeExecutor: tradeWallet,
           isXDai,
         });
-
-        // if xDAI, re-read the actual sDAI received
-        if (isXDai) {
-          const updatedWalletSDaiBalance = await fetchTokenBalance(
-            tradeWallet,
-            collateral.address,
-          );
-          snapshot.initialSDAIDeposit = updatedWalletSDaiBalance.value;
-        }
 
         setFlag("isAddingCollateral", false);
         setFlag("isCollateralAdded", true);
       }
 
-      setFlag("isProcessingMarkets", true);
-
-      const sDaiToWXDaiData = await getSDaiToWXdaiData(
-        tradeWallet!,
-        creditsToSwap,
-      );
-      // the expected/equivalent sDAI received by using SeerCredits can be less than initially calculated
-      // so adjusting
-      if (
-        sDaiToWXDaiData &&
-        sDaiToWXDaiData.slippage > 0n &&
-        snapshot.initialSDAIDeposit
-      ) {
-        snapshot.initialSDAIDeposit =
-          snapshot.initialSDAIDeposit - sDaiToWXDaiData.slippage;
-      }
-
       setFlag("chunkProgressMessage", undefined);
       setFlag("isProcessingMarkets", true);
 
+      // Foresight Credits are swapped and split inside the batch; what they
+      // mint arrives as complete sets rather than as sDAI.
+      const sDaiToWXDaiData = await getSDaiToWXdaiData(
+        tradeWallet,
+        snapshot.creditsToSwap,
+      );
+      const preMinted = sDaiToWXDaiData?.minSDaiReceived ?? 0n;
+
+      // The sDAI this prediction may spend: the amount entered, less the part
+      // covered by credits, and never more than the wallet really holds - an
+      // xDAI deposit converts at a rate that can differ from the preview by a
+      // few wei, and a transfer that asks for more than the balance reverts.
+      const walletSDai = (
+        await fetchTokenBalance(tradeWallet, collateral.address)
+      ).value;
+      const sDaiWanted =
+        snapshot.sDAIDeposit > snapshot.creditsToSwap
+          ? snapshot.sDAIDeposit - snapshot.creditsToSwap
+          : 0n;
+      const budget = sDaiWanted < walletSDai ? sDaiWanted : walletSDai;
+
+      const [pools, balances] = await Promise.all([
+        loadPools(),
+        fetchTokensBalances(
+          tradeWallet,
+          outcomes.map((outcome) => outcome.outcomeId),
+        ),
+      ]);
+      // fetchTokensBalances answers a failed read with []
+      if (balances.length !== outcomes.length) {
+        throw new Error(
+          "Could not read your Trade Wallet balances. Nothing was traded, please try again.",
+        );
+      }
+
+      const { targets, isMoved } = await buildTargets(pools);
+
       // process outcome predictions
-      const processedPredictions = await Promise.all(
-        outcomes.slice(0, -1).map(async (outcome, index) => {
-          const mintAmount = snapshot.initialSDAIDeposit ?? 0n;
-          const outcomeProcessed = await processRiskMarket({
-            underlying: outcome.collateral,
-            outcome: outcome.outcomeId,
-            tradeExecutor: tradeWallet!,
-            mintAmount: mintAmount,
-            targetPrice: predictedPrices[index] ?? 0,
-            symbol: outcome.symbol,
-          });
-          return outcomeProcessed;
+      const processedPredictions = tradedOutcomes.map((outcome, index) =>
+        processRiskMarket({
+          pool: pools[index],
+          underlying: outcome.collateral,
+          outcome: outcome.outcomeId,
+          targetPrice: targets[index] ?? 0,
+          balance: balances[index],
+          // the name the user sees on the card, for error and note text
+          symbol: outcome.outcome,
+          // "No To All" is the last leg, and moves with any asset
+          isUserPrediction: isMoved[index] ?? isMoved.some(Boolean),
         }),
       );
       setFlag("isProcessingMarkets", false);
 
       // get quotes
-      setFlag("chunkProgressMessage", undefined);
       setFlag("isLoadingQuotes", true);
-      let quoteResult: GetQuotesResult | undefined;
+      let quoteResult: GetQuotesResult;
       try {
         quoteResult = await getRiskQuotes({
-          account: tradeWallet!,
+          account: tradeWallet,
           processedOutcomePredictions: processedPredictions,
+          budget,
+          preMinted,
+          invalidBalance: balances[balances.length - 1],
         });
-      } catch (e) {
+      } finally {
         setFlag("isLoadingQuotes", false);
-        // keep the real reason: "No routes found" hid the actual failure,
-        // which is usually the not-enough-collateral throw
-        throw e instanceof Error ? e : new Error("No routes found");
       }
 
-      if (!quoteResult) {
-        setFlag("isLoadingQuotes", false);
-        throw new Error("No routes found");
+      // Tell the user about the legs they asked for that will not land where
+      // they put them. Restricted to assets they moved: every prediction also
+      // nudges the other 30-odd outcomes by a hair, and listing those is what
+      // made an earlier version of this notice unreadable.
+      const movedSymbols = new Set(
+        tradedOutcomes
+          .slice(0, -1)
+          .filter((_, index) => isMoved[index])
+          .map((outcome) => outcome.outcome),
+      );
+      const noToAllSymbol = tradedOutcomes[tradedOutcomes.length - 1].outcome;
+      const skipped = quoteResult.skipped ?? [];
+      const partial = quoteResult.partial ?? [];
+      const notes = [
+        ...skipped
+          .filter(
+            (leg) =>
+              movedSymbols.has(leg.symbol) ||
+              (leg.symbol === noToAllSymbol && leg.reason === "no-liquidity"),
+          )
+          .map(skippedNote),
+        ...partial
+          .filter(
+            (leg) =>
+              movedSymbols.has(leg.symbol) || leg.symbol === noToAllSymbol,
+          )
+          .map(partialNote),
+      ];
+
+      const { sellQuotes, buyQuotes } = quoteResult.quotes;
+      if (sellQuotes.length + buyQuotes.length === 0) {
+        const unfunded =
+          budget + preMinted === 0n &&
+          skipped.some(
+            (leg) => leg.side === "buy" && leg.reason === "below-minimum",
+          );
+        throw new Error(
+          unfunded
+            ? "This prediction needs collateral to buy with. Enter an amount - sDAI already in your Trade Wallet is used before anything is taken from your wallet."
+            : ["Nothing to trade.", ...notes].join("\n"),
+        );
       }
 
-      setFlag("isLoadingQuotes", false);
-      setFlag("chunkProgressMessage", undefined);
+      const unspent = quoteResult.unspent ?? 0n;
+      if (budget > 0n && unspent * 10n >= budget) {
+        notes.push(
+          `${formatValue(unspent)} sDAI was not needed and stays in your Trade Wallet.`,
+        );
+      }
+
       // execute trade
-      const mintAmount =
-        (snapshot.initialSDAIDeposit ?? 0n) -
-        (sDaiToWXDaiData?.minSDaiReceived ?? 0n);
-
       await tradeExecutorPredictAll.mutateAsync({
-        quoteResult: quoteResult!,
-        tradeExecutor: tradeWallet!,
-        mintAmount: mintAmount,
+        quoteResult,
+        tradeExecutor: tradeWallet,
         seerCreditsSwapQuote: sDaiToWXDaiData?.quote,
+        onProgress: (current, total) =>
+          setFlag(
+            "chunkProgressMessage",
+            `Confirm transaction ${current} of ${total} in your wallet...`,
+          ),
       });
+      setFlag("chunkProgressMessage", undefined);
       setFlag("isPredictionSuccessful", true);
 
-      // close + reset
-      setTimeout(() => {
-        onDone();
-        reset();
-        queryClient.refetchQueries({
-          queryKey: ["useTicksData"],
-        });
-      }, 1000);
+      if (notes.length > 0) {
+        // stays open until the user has read it; the popup calls finish()
+        setFlag("tradeNotes", notes);
+      } else {
+        // close + reset
+        setTimeout(finish, 1000);
+      }
     } catch (e) {
+      setFlag("isProcessingMarkets", false);
+      setFlag("chunkProgressMessage", undefined);
       if (e instanceof Error) {
         setFlag("error", formatError(e));
       } else {
@@ -320,7 +488,7 @@ export function usePredictRiskFlow({
       }
 
       // reset state later if user doesn't act
-      setTimeout(() => reset(), 10000);
+      resetTimerRef.current = setTimeout(() => reset(), 10000);
     } finally {
       setFlag("isSending", false);
       isSubmittingRef.current = false;
@@ -329,6 +497,7 @@ export function usePredictRiskFlow({
 
   return {
     handlePredict,
+    finish,
     ...state,
     tradeExecutorPredictAll,
   };
