@@ -96,7 +96,15 @@ export function getVolumeUntilPriceDual(
   targetPrice: number,
   outcome: Address,
   swapType: "buy" | "sell",
-): { outcomeVolume: number; collateralVolume: number } {
+): {
+  outcomeVolume: number;
+  collateralVolume: number;
+  /**
+   * False when the pool's liquidity ends before the target: the volumes then
+   * only take the price as far as the last initialized tick in that direction.
+   */
+  targetReached: boolean;
+} {
   const clampedTarget = clamp(targetPrice, MIN_PRICE, MAX_PRICE);
 
   const isOutcomeToken0 = isTwoStringsEqual(pool.token0, outcome);
@@ -111,10 +119,11 @@ export function getVolumeUntilPriceDual(
   const movingUp =
     (isOutcomeToken0 && swapType === "buy") ||
     (!isOutcomeToken0 && swapType === "sell");
+  // already at or past the target, so there is nothing left to trade
   if (movingUp && targetSqrtPriceX96 <= currentSqrtPriceX96)
-    return { outcomeVolume: 0, collateralVolume: 0 };
+    return { outcomeVolume: 0, collateralVolume: 0, targetReached: true };
   if (!movingUp && targetSqrtPriceX96 >= currentSqrtPriceX96)
-    return { outcomeVolume: 0, collateralVolume: 0 };
+    return { outcomeVolume: 0, collateralVolume: 0, targetReached: true };
 
   const relevantTicks = ticks
     .filter((tick) =>
@@ -131,6 +140,7 @@ export function getVolumeUntilPriceDual(
   let totalOutcome = 0;
   let totalCollateral = 0;
   let liquidity = pool.liquidity;
+  let targetReached = false;
 
   for (let i = 0; i < relevantTicks.length; i++) {
     const tick = Number(relevantTicks[i].tickIdx);
@@ -152,13 +162,20 @@ export function getVolumeUntilPriceDual(
     totalOutcome += outcomeVolume;
     totalCollateral += collateralVolume;
 
-    if (targetWithinRange) break;
+    if (targetWithinRange) {
+      targetReached = true;
+      break;
+    }
 
     currentSqrtPriceX96 = sqrtAtTick;
     liquidity += BigInt(relevantTicks[i].liquidityNet) * (movingUp ? 1n : -1n);
   }
 
-  return { outcomeVolume: totalOutcome, collateralVolume: totalCollateral };
+  return {
+    outcomeVolume: totalOutcome,
+    collateralVolume: totalCollateral,
+    targetReached,
+  };
 }
 
 /**
@@ -197,7 +214,7 @@ export function useVolumeUntilPriceDual(
         ],
       );
       if (currentPrice === targetPrice)
-        return { outcomeVolume: 0, collateralVolume: 0 };
+        return { outcomeVolume: 0, collateralVolume: 0, targetReached: true };
 
       return getVolumeUntilPriceDual(
         poolInfo,

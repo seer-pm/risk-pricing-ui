@@ -18,6 +18,7 @@ import { useRiskPredictionStore } from "@/store/riskMarketStore";
 import { config } from "@/wagmiConfig";
 
 import { isUndefined } from "@/utils";
+import { formatError } from "@/utils/formatError";
 import { estimateGasWithBuffer } from "@/utils/gasLimit";
 import { GetQuotesResult } from "@/utils/getQuotes";
 import { getMinimumAmountOut } from "@/utils/swapr";
@@ -33,9 +34,9 @@ import { mergeFromRouter } from "./useTradeExecutorPredict";
 interface PredictProps {
   tradeExecutor: Address;
   quoteResult: GetQuotesResult;
-  // defined if collateral needs to minted to Parent Market
-  mintAmount?: bigint;
   seerCreditsSwapQuote?: SwaprV3Trade;
+  /** Called before each transaction when the batch needs more than one. */
+  onProgress?: (current: number, total: number) => void;
 }
 
 interface Call {
@@ -136,170 +137,138 @@ export const getSplitFromTradeExecutorCalls = ({
   return calls;
 };
 
-const getApproveCalls = async (
-  quoteResult: GetQuotesResult,
-  outcomeIds: Address[],
-) => {
-  const { quotes, mergeAmount } = quoteResult;
-  const { sellQuotes, buyQuotes } = quotes;
-  console.log(quotes);
-  // sell approve calls - consolidate by (token, spender) in case multiple sells
-  // share the same token (defensive, typically each sell is a different outcome)
-  const sellApproveByKey = new Map<
-    string,
-    { token: Address; spender: Address; amount: bigint }
-  >();
-  for (const quote of sellQuotes) {
-    const token = quote.inputAmount.currency.address! as Address;
-    const spender = quote.approveAddress as Address;
-    const amount = parseUnits(quote.maximumAmountIn().toExact(), DECIMALS);
-    console.log({ amount });
-    const key = `${token}-${spender}`;
-    const existing = sellApproveByKey.get(key);
-    sellApproveByKey.set(key, {
-      token,
-      spender,
-      amount: existing ? existing.amount + amount : amount,
-    });
-  }
-  const sellApproveCalls = [...sellApproveByKey.values()].map(
-    ({ token, spender, amount }) => ({
-      to: token,
-      data: encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [spender, amount],
-      }),
+/**
+ * One indivisible piece of the batch - an approval always travels with the
+ * call that spends it - and roughly what it costs, in units of one swap
+ * (~200k gas before refunds).
+ *
+ * Splitting or merging a 35-outcome market wraps or unwraps every outcome
+ * token, which measured ~4.3M and ~4.6M gas on a Gnosis fork.
+ */
+export type Step = { calls: Call[]; weight: number };
+
+const SWAP_WEIGHT = 1;
+const SPLIT_WEIGHT = 23;
+const MERGE_WEIGHT = 30;
+const SEER_CREDITS_MINT_WEIGHT = 26;
+/**
+ * Per-transaction ceiling. A split plus 13 swaps measured 5-6M gas, which
+ * leaves the buffered gas limit around 8M. A transaction that needs most of
+ * the 17M block only fits in a nearly empty one and can sit pending
+ * indefinitely, so a larger batch is sent as several transactions instead.
+ */
+const MAX_WEIGHT_PER_TRANSACTION = 36;
+
+const getSwapStep = async (
+  quote: SwaprV3Trade,
+  tradeExecutor: Address,
+): Promise<Step> => {
+  const approveCall = {
+    to: quote.inputAmount.currency.address! as Address,
+    data: encodeFunctionData({
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [
+        quote.approveAddress as Address,
+        parseUnits(quote.maximumAmountIn().toExact(), DECIMALS),
+      ],
     }),
-  );
-
-  // approve gnosis router to merge
-  const mergeApproveCalls =
-    mergeAmount > 0n
-      ? outcomeIds.map((x) => ({
-          to: x,
-          data: encodeFunctionData({
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [gnosisRouterAddress, mergeAmount],
-          }),
-        }))
-      : [];
-
-  // buy approve calls - consolidate by (token, spender)
-  const buyApproveByKey = new Map<
-    string,
-    { token: Address; spender: Address; amount: bigint }
-  >();
-  for (const quote of buyQuotes) {
-    const token = quote.inputAmount.currency.address! as Address;
-    const spender = quote.approveAddress as Address;
-    const amount = parseUnits(quote.maximumAmountIn().toExact(), DECIMALS);
-    const key = `${token}-${spender}`;
-    const existing = buyApproveByKey.get(key);
-    buyApproveByKey.set(key, {
-      token,
-      spender,
-      amount: existing ? existing.amount + amount : amount,
-    });
-  }
-  const buyApproveCalls = [...buyApproveByKey.values()].map(
-    ({ token, spender, amount }) => ({
-      to: token,
-      data: encodeFunctionData({
-        abi: erc20Abi,
-        functionName: "approve",
-        args: [spender, amount],
-      }),
-    }),
-  );
-
+  };
+  const txn = await quote.swapTransaction({ recipient: tradeExecutor });
   return {
-    sellApproveCalls,
-    mergeApproveCalls,
-    buyApproveCalls,
+    calls: [approveCall, { to: txn.to!, data: txn.data! }],
+    weight: SWAP_WEIGHT,
   };
 };
 
-async function getTradeExecutorCalls({
+async function getTradeExecutorSteps({
   tradeExecutor,
   quoteResult,
-  mintAmount,
   seerCreditsSwapQuote,
   outcomes,
 }: PredictProps & { outcomes: RiskPricingOutcome[] }) {
-  const calls: Call[] = [];
+  const steps: Step[] = [];
 
-  // Note that mintAmount will be already be offset taking into account the available SeerCredits
-  // so if the collateral amount is 10, then 7 can be SeerCredits and then mintAmount will be 3.
+  // Foresight Credits can only enter the market by being split, so that mint
+  // is unconditional. getRiskQuotes was told about it as `preMinted`.
   if (seerCreditsSwapQuote) {
-    const mintFromSeerCreditsCalls = await getMintFromSeerCreditsCalls(
-      tradeExecutor,
-      seerCreditsSwapQuote,
-    );
-
-    calls.push(...mintFromSeerCreditsCalls);
+    steps.push({
+      calls: await getMintFromSeerCreditsCalls(
+        tradeExecutor,
+        seerCreditsSwapQuote,
+      ),
+      weight: SEER_CREDITS_MINT_WEIGHT,
+    });
   }
 
-  // Adds a split call if the user entered an amount to mint
-  if (!isUndefined(mintAmount) && mintAmount > 0n) {
-    const mintCalls = getSplitFromTradeExecutorCalls({ amount: mintAmount });
-    calls.push(...mintCalls);
-  }
-
-  const { quotes, mergeAmount } = quoteResult;
+  const { quotes, mergeAmount, splitAmount } = quoteResult;
   const { sellQuotes, buyQuotes } = quotes;
 
-  const { sellApproveCalls, mergeApproveCalls, buyApproveCalls } =
-    await getApproveCalls(
-      quoteResult,
-      outcomes.map((x) => x.outcomeId),
-    );
-
-  const sellSwapTransactions = (
-    await Promise.all(
-      sellQuotes.map((quote) =>
-        quote.swapTransaction({ recipient: tradeExecutor }),
-      ),
-    )
-  ).map((txn) => ({ to: txn.to!, data: txn.data! }));
-
-  calls.push(...sellApproveCalls);
-  calls.push(...sellSwapTransactions);
-
-  if (mergeAmount > 0n) {
-    calls.push(...mergeApproveCalls);
-    calls.push(mergeFromRouter(RISK_PRICING_MARKET_ID, mergeAmount));
+  // only what the sells are short of, see getRiskQuotes
+  if (!isUndefined(splitAmount) && splitAmount > 0n) {
+    steps.push({
+      calls: getSplitFromTradeExecutorCalls({ amount: splitAmount }),
+      weight: SPLIT_WEIGHT,
+    });
   }
 
-  const buySwapTransactions = (
-    await Promise.all(
-      buyQuotes.map((quote) =>
-        quote.swapTransaction({ recipient: tradeExecutor }),
-      ),
-    )
-  ).map((txn) => ({ to: txn.to!, data: txn.data! }));
+  // order matters across the whole list: sells and the merge fund the buys
+  steps.push(
+    ...(await Promise.all(
+      sellQuotes.map((quote) => getSwapStep(quote, tradeExecutor)),
+    )),
+  );
 
-  calls.push(...buyApproveCalls);
-  calls.push(...buySwapTransactions);
-  return calls;
+  if (mergeAmount > 0n) {
+    // the router pulls every outcome token, "Invalid" included
+    const mergeApproveCalls = outcomes.map(({ outcomeId }) => ({
+      to: outcomeId,
+      data: encodeFunctionData({
+        abi: erc20Abi,
+        functionName: "approve",
+        args: [gnosisRouterAddress, mergeAmount],
+      }),
+    }));
+    steps.push({
+      calls: [
+        ...mergeApproveCalls,
+        mergeFromRouter(RISK_PRICING_MARKET_ID, mergeAmount),
+      ],
+      weight: MERGE_WEIGHT,
+    });
+  }
+
+  steps.push(
+    ...(await Promise.all(
+      buyQuotes.map((quote) => getSwapStep(quote, tradeExecutor)),
+    )),
+  );
+
+  return steps;
 }
 
-async function predictRiskOutcomesFromTradeExecutor({
-  tradeExecutor,
-  quoteResult,
-  mintAmount,
-  seerCreditsSwapQuote,
-  outcomes,
-}: PredictProps & { outcomes: RiskPricingOutcome[] }) {
-  const calls = await getTradeExecutorCalls({
-    tradeExecutor,
-    quoteResult,
-    mintAmount,
-    seerCreditsSwapQuote,
-    outcomes,
-  });
+/** Packs steps into transactions in order, never splitting a step. */
+export const chunkSteps = (steps: Step[]): Call[][] => {
+  const chunks: Call[][] = [];
+  let current: Call[] = [];
+  let weight = 0;
+  for (const step of steps) {
+    if (
+      current.length > 0 &&
+      weight + step.weight > MAX_WEIGHT_PER_TRANSACTION
+    ) {
+      chunks.push(current);
+      current = [];
+      weight = 0;
+    }
+    current.push(...step.calls);
+    weight += step.weight;
+  }
+  if (current.length > 0) chunks.push(current);
+  return chunks;
+};
 
+async function executeCalls(tradeExecutor: Address, calls: Call[]) {
   const valueCalls = calls.map((call) => ({
     ...call,
     value: call?.value ?? 0n,
@@ -332,6 +301,39 @@ async function predictRiskOutcomesFromTradeExecutor({
   const result = await waitForTransaction(() => writePromise);
   if (!result.status) {
     throw result.error;
+  }
+  return result;
+}
+
+async function predictRiskOutcomesFromTradeExecutor({
+  tradeExecutor,
+  quoteResult,
+  seerCreditsSwapQuote,
+  outcomes,
+  onProgress,
+}: PredictProps & { outcomes: RiskPricingOutcome[] }) {
+  const steps = await getTradeExecutorSteps({
+    tradeExecutor,
+    quoteResult,
+    seerCreditsSwapQuote,
+    outcomes,
+  });
+  const chunks = chunkSteps(steps);
+
+  let result;
+  for (let i = 0; i < chunks.length; i++) {
+    if (chunks.length > 1) onProgress?.(i + 1, chunks.length);
+    try {
+      result = await executeCalls(tradeExecutor, chunks[i]);
+    } catch (e) {
+      // the earlier transactions are final, so say where things stand rather
+      // than leaving the user to guess from a bare revert reason
+      if (i === 0) throw e;
+      const reason = e instanceof Error ? formatError(e) : undefined;
+      throw new Error(
+        `${reason ?? "Transaction failed."}\n${i} of ${chunks.length} transactions went through and the rest were not sent. Nothing is lost: the tokens and sDAI are in your Trade Wallet, and you can predict again to finish.`,
+      );
+    }
   }
   return result;
 }

@@ -33,16 +33,31 @@ export type GetQuoteProps = {
  * - no-volume-to-target: the pool is already at/past the target, or the
  *   target clamped to the wrong side of spot
  * - no-route: the Swapr quoter rejected or returned no route
+ * - within-fee: the move is smaller than the pool's own swap fee
+ * - no-liquidity: the pool has no liquidity left in that direction
  */
 export type SkippedLegReason =
   | "below-minimum"
   | "no-volume-to-target"
-  | "no-route";
+  | "no-route"
+  | "within-fee"
+  | "no-liquidity";
 
 export type SkippedLeg = {
   symbol: string;
   side: "buy" | "sell";
   reason: SkippedLegReason;
+};
+
+/**
+ * A leg that traded but stops short of the prediction.
+ * - pool-liquidity: the pool's liquidity ends before the target price
+ * - collateral: not enough tokens (sell) or collateral (buy) to go all the way
+ */
+export type PartialLeg = {
+  symbol: string;
+  side: "buy" | "sell";
+  reason: "pool-liquidity" | "collateral";
 };
 
 export type GetQuotesResult = {
@@ -53,6 +68,11 @@ export type GetQuotesResult = {
   mergeAmount: bigint;
   /** Optional so the parallel getQuotes() consumer is unaffected. */
   skipped?: SkippedLeg[];
+  /** Risk market only: collateral to split before the sells. */
+  splitAmount?: bigint;
+  partial?: PartialLeg[];
+  /** Risk market only: collateral the buys had available but did not need. */
+  unspent?: bigint;
 };
 
 const withMarketContext = (msg: string, marketName?: string) =>

@@ -9,12 +9,12 @@ import {
   useReadSDaiPreviewDeposit,
   useReadSDaiPreviewRedeem,
 } from "@/generated";
+import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import { usePredictRiskFlow } from "@/hooks/predict/usePredictRiskFlow";
 import { useCheckTradeExecutorCreated } from "@/hooks/tradeWallet/useCheckTradeExecutorCreated";
 import { useCreditsBalance } from "@/hooks/useCreditsBalance";
 import { useFirstPredictionStatus } from "@/hooks/useFirstPredictionStatus";
-import { usePredictionMarkets } from "@/hooks/usePredictionMarkets";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useTokensBalances } from "@/hooks/useTokenBalances";
 
@@ -39,7 +39,7 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
   toggleIsOpen,
   toggleGuide,
 }) => {
-  const markets = usePredictionMarkets();
+  const outcomes = useRiskPredictionStore((state) => state.outcomes);
 
   const [amount, setAmount] = useState<bigint>();
   const [selectedToken, setSelectedToken] = useState<TokenType>(TokenType.sDAI);
@@ -84,18 +84,14 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
     token: collateral.address,
   });
 
-  const { data: tokensBalances } = useTokensBalances(
-    tradeExecutor,
-    markets.flatMap((market) => [
-      market.upToken,
-      market.downToken,
-      market.invalidToken,
-    ]),
+  // Balances of this market's outcome tokens. These used to be read through
+  // the legacy markets store, which is empty here, so a returning user's
+  // position was never seen and re-predicting without new capital was refused.
+  const outcomeIds = useMemo(
+    () => outcomes.map((outcome) => outcome.outcomeId),
+    [outcomes],
   );
-  const { data: underlyingTokensBalances } = useTokensBalances(
-    tradeExecutor,
-    markets.map((market) => market.underlyingToken),
-  );
+  const { data: tokensBalances } = useTokensBalances(tradeExecutor, outcomeIds);
 
   const { isFirstPrediction, setStoredHasPredicted } =
     useFirstPredictionStatus(tradeExecutor);
@@ -203,6 +199,8 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
 
   const {
     handlePredict,
+    finish,
+    tradeNotes,
     createdTradeWallet,
     isCreatingWallet,
     isAddingCollateral,
@@ -228,8 +226,7 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
     toBeAddedXDai,
     toBeAddedSeerCredits,
     creditsToSwap,
-    walletUnderlyingBalances: underlyingTokensBalances,
-    walletTokensBalances: tokensBalances,
+    walletOutcomeBalances: tokensBalances,
     onDone: () => {
       toggleIsOpen();
       resetUI();
@@ -293,6 +290,7 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
               isProcessingMarkets,
               isPredictionSuccessful,
               chunkProgressMessage,
+              tradeNotes,
               isMakingPrediction: tradeExecutorPredictAll.isPending,
               error,
             }}
@@ -301,24 +299,33 @@ export const PredictAllPopup: React.FC<IPredictAllPopup> = ({
 
         <div className="bg-klerosUIComponentsWhiteBackground sticky bottom-0 py-4">
           <div className="flex flex-wrap gap-3.5">
-            <Button
-              text="Cancel"
-              variant="secondary"
-              onPress={() => {
-                toggleIsOpen();
-                resetUI();
-              }}
-              isDisabled={isSending}
-            />
-            <Button
-              text="Predict"
-              onPress={() => {
-                firstPredictionRef.current = isFirstPrediction;
-                handlePredict();
-              }}
-              isDisabled={disabled}
-              isLoading={isSending}
-            />
+            {isPredictionSuccessful && tradeNotes?.length ? (
+              // The prediction is in; the popup only stayed open so the notes
+              // above could be read. Offering "Predict" again here would send
+              // a second trade.
+              <Button text="Done" onPress={finish} />
+            ) : (
+              <>
+                <Button
+                  text="Cancel"
+                  variant="secondary"
+                  onPress={() => {
+                    toggleIsOpen();
+                    resetUI();
+                  }}
+                  isDisabled={isSending}
+                />
+                <Button
+                  text="Predict"
+                  onPress={() => {
+                    firstPredictionRef.current = isFirstPrediction;
+                    handlePredict();
+                  }}
+                  isDisabled={disabled}
+                  isLoading={isSending}
+                />
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -44,7 +44,7 @@ const RiskMarketHeader: React.FC = () => {
       const marketProbability = outcomes.find(
         (outcome) => outcome.outcomeId === predictionOutcomeId,
       )?.probability;
-      return prediction && prediction !== marketProbability;
+      return prediction !== undefined && prediction !== marketProbability;
     },
   );
   return (
@@ -80,7 +80,13 @@ const RiskMarketHeader: React.FC = () => {
                   ? noToAllProbability
                   : undefined
                 : predictions[outcome.outcomeId];
-              if (!prediction || prediction === outcome.probability) return;
+              // not a truthiness test: a PD of exactly 0 is still traded, so
+              // it has to be listed
+              if (
+                prediction === undefined ||
+                prediction === outcome.probability
+              )
+                return;
               return (
                 <motion.div
                   className={clsx(
