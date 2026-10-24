@@ -15,10 +15,10 @@ interface IDesktopNavbar {
 
 const DesktopNavbar: React.FC<IDesktopNavbar> = ({ toggleIsHelpOpen }) => {
   return (
-    <div className="relative hidden h-16 w-full items-center justify-between md:flex">
+    <div className="relative hidden h-16 w-full items-center justify-between lg:flex">
       <Logo />
 
-      <div className="ml-2 flex items-center gap-1 md:gap-2">
+      <div className="ml-2 flex items-center gap-1 lg:gap-2">
         <QuickGuideButton />
         <GnosisIcon className="mx-2.5 size-6" />
         <ConnectWallet />

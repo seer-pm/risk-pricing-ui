@@ -1,28 +1,16 @@
-"use client";
-import React from "react";
-
+import { BrandLockup } from "@seer-pm/ui-kit/react";
 import Link from "next/link";
 
-import LogoKleros from "@/assets/svg/built-by-kleros.svg";
-import LogoForeSight from "@/assets/svg/logo-foresight.svg";
+import { riskApp } from "@/consts/brand";
 
-// Icon-only links, so each carries its name in aria-label.
-// (The former `mounted` guard rendered exactly the same markup in both
-// branches, so it only cost a re-render.)
-const Logo: React.FC = () => (
-  <div className="flex items-center gap-7">
-    <Link href="/" aria-label="Foresight home">
-      <LogoForeSight className="hover:brightness-105" />
-    </Link>
+export default function Logo() {
+  return (
     <Link
-      href="https://kleros.io/"
-      aria-label="Kleros"
-      target="_blank"
-      rel="noreferrer"
+      href="/"
+      aria-label="Risk Pricing home"
+      className="text-seer-text shrink-0"
     >
-      <LogoKleros className="hover:brightness-105" />
+      <BrandLockup appName={riskApp.name} />
     </Link>
-  </div>
-);
-
-export default Logo;
+  );
+}

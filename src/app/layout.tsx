@@ -23,7 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="box-border size-full" suppressHydrationWarning>
       <head>
-        <meta name="apple-mobile-web-app-title" content="Foresight | Kleros" />
+        <meta name="apple-mobile-web-app-title" content="Risk Pricing | Seer" />
       </head>
       <body
         className={clsx(

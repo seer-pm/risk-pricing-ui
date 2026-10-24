@@ -30,14 +30,17 @@ const MobileNavbar: React.FC<IMobileNavbar> = ({ toggleIsHelpOpen }) => {
 
   return (
     <>
-      <div className="relative flex h-16 w-full items-center justify-between md:!hidden">
+      <div className="relative flex h-16 w-full items-center justify-between lg:!hidden">
         <Logo />
-        <LightButton
-          ariaLabel="Open menu"
-          text=""
-          icon={<HamburgerIcon />}
-          onPress={toggleIsMenuOpen}
-        />
+        <div className="ml-auto flex items-center gap-1">
+          <ThemeToggle />
+          <LightButton
+            ariaLabel="Open menu"
+            text=""
+            icon={<HamburgerIcon />}
+            onPress={toggleIsMenuOpen}
+          />
+        </div>
       </div>
       <Modal
         className={clsx(
