@@ -85,8 +85,11 @@ export default function Home() {
     }
   }, [isOnboardingDone, toggleGuide]);
   return (
-    <div className="w-full px-4 py-12 md:px-8 lg:px-32">
-      <div className="mx-auto max-w-294 space-y-6">
+    <main
+      id="main-content"
+      className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
+    >
+      <div className="space-y-6">
         <Header />
         <QuarterTabs />
         <div className="min-h-106 space-y-6">
@@ -144,7 +147,10 @@ export default function Home() {
           )}
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div
+          id="participate"
+          className="border-seer-border flex scroll-mt-24 flex-col gap-4 border-t pt-8"
+        >
           <TradeWalletProvider>
             <ParticipateSection />
             {/* "No To All" is not a card in this list any more: it is the one
@@ -183,6 +189,6 @@ export default function Home() {
           }}
         />
       </div>
-    </div>
+    </main>
   );
 }

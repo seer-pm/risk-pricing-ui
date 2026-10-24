@@ -28,7 +28,7 @@ const LightButton: React.FC<ILightButton> = ({
     {...props}
     className={cn(
       "seer-button-ghost p-2",
-      "hover:bg-seer-raised",
+      "hover:bg-seer-surface-raised",
       FOCUS_RING,
       "[&>svg]:fill-klerosUIComponentsSecondaryText hover:[&>svg]:fill-klerosUIComponentsPrimaryText [&>svg]:mr-0",
       "[&>svg_path]:fill-klerosUIComponentsSecondaryText hover:[&>svg_path]:fill-klerosUIComponentsPrimaryText",

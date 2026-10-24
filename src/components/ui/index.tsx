@@ -58,7 +58,7 @@ export function Card({
       {...props}
       className={cn(
         "rounded-surface border-seer-border bg-seer-surface text-seer-text border",
-        hover && "hover:bg-seer-raised",
+        hover && "hover:bg-seer-surface-raised",
         className,
       )}
     />

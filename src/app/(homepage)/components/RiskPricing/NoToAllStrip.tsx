@@ -27,31 +27,9 @@ import {
 import DeltaChip from "./DeltaChip";
 import { usePredictionDrag } from "./usePredictionDrag";
 
-/**
- * Pinned flush to the top of the viewport, with the band painted in the page
- * background so cards scroll behind it rather than through the gap.
- *
- * It does not need to clear the app header. That header is `sticky top-0`, but
- * its containing block is `body`, which layout.tsx sizes `size-full` - so it
- * unpins about 900px down, long before the slider list this strip belongs to
- * comes into view. The two are never both pinned, and the header's z-30 beats
- * this z-20 if they ever were.
- */
-const STICKY_OFFSET = "top-0";
+/** The opaque band clears the sticky app header while asset predictions scroll beneath it. */
+const STICKY_OFFSET = "top-16";
 
-/**
- * "No To All" as a pinned strip rather than a card in the list.
- *
- * It is the one number every other slider on the page moves - it is
- * prod(1 - p_i) over the 33 assets - but as the 34th card it sat ~2,700px below
- * the first asset, so a user could not see their own edit land. Pinned here it
- * stays on screen while they work down the list, and dragging it drives the
- * assets back the other way through the same hook the asset sliders use.
- *
- * Unlike the asset sliders this track is LINEAR: survival sits near the top of
- * the range and barely varies in the decade below it, so the log scale that
- * makes PDs readable would squash this into the last few pixels.
- */
 const NoToAllStrip = ({ outcome }: { outcome: RiskPricingOutcome }) => {
   // The Slider reads the store, which is empty until the market resolves, and
   // the accordion cards below already gate their sliders the same way.

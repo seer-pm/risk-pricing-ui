@@ -21,16 +21,28 @@ export default function RootLayout({
   const cookies = headers().get("cookie");
 
   return (
-    <html lang="en" className="box-border size-full" suppressHydrationWarning>
+    <html lang="en" className="box-border min-h-full" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('theme');var d=t==='dark'||((!t||t==='system')&&matchMedia('(prefers-color-scheme:dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.classList.toggle('light',!d);document.documentElement.style.colorScheme=d?'dark':'light'}catch(e){}",
+          }}
+        />
         <meta name="apple-mobile-web-app-title" content="Risk Pricing | Seer" />
       </head>
       <body
         className={clsx(
           "bg-klerosUIComponentsLightBackground antialiased",
-          "flex size-full flex-col",
+          "flex min-h-screen flex-col",
         )}
       >
+        <a
+          href="#main-content"
+          className="seer-button seer-button-primary sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50"
+        >
+          Skip to content
+        </a>
         <ThemeProvider
           themes={["light", "dark"]}
           attribute="class"
