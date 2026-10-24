@@ -1,8 +1,6 @@
-import ShieldCheck from "@/assets/svg/shield-check.svg";
-
 import { cn, formatPd } from "@/utils";
 
-import { logScalePercent, zoneAxis, zones } from "../constants";
+import { logScalePercent, zoneAxis } from "../constants";
 import RiskZoneBar from "../RiskZoneBar";
 
 export type AssetRisk = {
@@ -41,7 +39,7 @@ export default function MarketEstimateRisk({
   if (assets.length === 0) {
     return (
       <div className="text-klerosUIComponentsSecondaryText border-klerosUIComponentsStroke flex h-96 w-full items-center justify-center rounded-xl border border-dashed text-sm">
-        No assets selected — pick a category or asset above to plot it.
+        No assets selected: pick a category or asset above to plot it.
       </div>
     );
   }
@@ -80,32 +78,6 @@ export default function MarketEstimateRisk({
             const widthPercent = logScalePercent(asset.risk);
             const flipLabel = widthPercent > FLIP_LABEL_AFTER_PERCENT;
 
-            /** Gradient stops relative to the asset width. */
-            const gradientStops = zones
-              .flatMap((zone) => {
-                if (zone.from >= asset.risk) return [];
-
-                const clampedTo = Math.min(zone.to, asset.risk);
-
-                /**
-                 * IMPORTANT:
-                 * Normalize against asset risk,
-                 * not global MAX_RISK
-                 */
-                const start =
-                  (logScalePercent(zone.from) / logScalePercent(asset.risk)) *
-                  100;
-
-                const end =
-                  (logScalePercent(clampedTo) / logScalePercent(asset.risk)) *
-                  100;
-
-                const [from, to] = zone.colors;
-
-                return [`${from} ${start}%`, `${to} ${end}%`];
-              })
-              .join(", ");
-
             return (
               <div key={asset.symbol} className="flex h-8 items-center">
                 {/* Asset name label (left of the chart) */}
@@ -127,16 +99,7 @@ export default function MarketEstimateRisk({
                     className="absolute top-1/2 h-3 -translate-y-1/2 rounded-full"
                     style={{
                       width: `${widthPercent}%`,
-                      background: `linear-gradient(to right, ${gradientStops})`,
-                    }}
-                  />
-
-                  {/* Overlay */}
-                  <div
-                    className="absolute top-1/2 h-3 -translate-y-1/2 rounded-full opacity-70"
-                    style={{
-                      width: `${widthPercent}%`,
-                      backgroundColor: assetColor,
+                      background: assetColor,
                     }}
                   />
 
@@ -179,12 +142,15 @@ export default function MarketEstimateRisk({
            secondary text colours - this is a readout under a chart, not a
            control, and the sticky NoToAllStrip is where the same number is
            editable. */
-        <div className="bg-klerosUIComponentsSuccessLight border-green-2 dark:border-klerosUIComponentsSuccess mt-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-y px-4 py-1">
+        <div className="bg-seer-surface border-seer-border mt-10 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-y px-4 py-1">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               {/* h-8 w-auto, not size-8: the shield is 27.7x32, and forcing it
                   square would letterbox it inside its own box. */}
-              <ShieldCheck aria-hidden="true" className="h-8 w-auto shrink-0" />
+              <span
+                className="bg-seer-series-2 size-3 rounded-full"
+                aria-hidden="true"
+              />
 
               {/* tabular-nums: these digits are redrawn as the user drags the
                   sliders above, and proportional figures make the row twitch. */}

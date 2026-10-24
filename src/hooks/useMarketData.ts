@@ -134,7 +134,7 @@ export const useMarketData = () => {
     !!prices,
   );
   // state.probs/priceY are quarterly (the pools trade on quarterly-implied
-  // prices) — convert to yearly PD for display, recomputing "No To All" from
+  // prices): convert to yearly PD for display, recomputing "No To All" from
   // the yearly-converted per-asset probabilities so it stays self-consistent.
   const probabilities = useMemo(() => {
     if (state.status !== "done") return undefined;

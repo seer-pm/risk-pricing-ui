@@ -140,7 +140,7 @@ const PredictSteps: React.FC<IPredictSteps> = ({
             {tradeNotes.join("\n")}
           </span>
         ) as unknown as string,
-        variant: "#c98a00",
+        variant: "var(--seer-warning)",
         party: "",
         Icon: CircleOutline,
       });
@@ -152,7 +152,7 @@ const PredictSteps: React.FC<IPredictSteps> = ({
         subtitle: (
           <span className="break-words whitespace-pre-wrap">{error}</span>
         ) as unknown as string,
-        variant: "#ca2314",
+        variant: "var(--seer-negative)",
         party: "",
         Icon: CloseOutline,
       });

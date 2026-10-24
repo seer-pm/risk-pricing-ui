@@ -62,7 +62,7 @@ const RiskMarketHeader: React.FC = () => {
       >
         {!hasPredictions ? (
           <p className="text-klerosUIComponentsSecondaryText py-4 text-center text-sm">
-            No predictions yet — move a slider to differ from the market.
+            No predictions yet: move a slider to differ from the market.
           </p>
         ) : null}
         <div className="flex w-full flex-col gap-0.25">

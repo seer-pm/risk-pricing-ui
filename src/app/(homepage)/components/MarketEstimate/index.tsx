@@ -10,7 +10,6 @@ import ChartBarIcon from "@/assets/svg/chart-bar.svg";
 import StatsBarIcon from "@/assets/svg/stats-bar.svg";
 
 import { cn } from "@/utils";
-import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
 import { FOCUS_RING } from "@/consts/styles";
 
@@ -68,16 +67,23 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
     progress: chartProgress,
   } = useRiskPdHistory(view === "overTime");
 
+  const [colorSlots, setColorSlots] = useState<(string | null)[]>(() =>
+    assets.slice(0, 4).map((asset) => asset.symbol),
+  );
+  const toggleColor = (symbol: string) =>
+    setColorSlots((current) => {
+      const slots = [...current];
+      const existing = slots.indexOf(symbol);
+      if (existing >= 0) slots[existing] = null;
+      else {
+        const empty = slots.indexOf(null);
+        if (empty >= 0) slots[empty] = symbol;
+        else if (slots.length < 4) slots.push(symbol);
+      }
+      return slots;
+    });
   const [hiddenAssets, setHiddenAssets] = useState<Set<string>>(new Set());
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
-
-  const toggleAsset = (symbol: string) =>
-    setHiddenAssets((prev) => {
-      const next = new Set(prev);
-      if (next.has(symbol)) next.delete(symbol);
-      else next.add(symbol);
-      return next;
-    });
 
   // Only offer a category that the market actually lists.
   const categoryCounts = useMemo(() => {
@@ -122,8 +128,12 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
     );
 
   const colorOf = useMemo(
-    () => buildAssetColorMap(assets.map((a) => a.symbol)),
-    [assets],
+    () =>
+      buildAssetColorMap(
+        assets.map((a) => a.symbol),
+        colorSlots,
+      ),
+    [assets, colorSlots],
   );
 
   const visibleAssets = useMemo(
@@ -136,10 +146,12 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
   const visibleSeries = useMemo(
     () =>
       sortAssetsByCategory(
-        series?.filter((s) => !hiddenAssets.has(s.symbol)) ?? [],
+        series
+          ?.filter((s) => !hiddenAssets.has(s.symbol))
+          .map((s) => ({ ...s, color: colorOf.get(s.symbol)! })) ?? [],
         (s) => s.symbol,
       ),
-    [series, hiddenAssets],
+    [series, hiddenAssets, colorOf],
   );
 
   return (
@@ -214,8 +226,8 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
                 style={
                   isActive
                     ? {
-                        backgroundColor: color || undefined,
-                        color: color ? getReadableTextColor(color) : undefined,
+                        backgroundColor: "var(--seer-accent-soft)",
+                        color: "var(--seer-accent-text)",
                       }
                     : undefined
                 }
@@ -237,39 +249,36 @@ const MarketEstimate: React.FC<IMarketEstimate> = ({
           })}
       </div>
 
+      <p className="text-seer-muted mb-3 text-sm">
+        Highlight up to four assets. Other assets remain visible as context.
+      </p>
       {/* Shared asset legend */}
       <div
         className="mb-6 flex flex-wrap gap-2"
         onMouseLeave={() => setHoveredSymbol(null)}
       >
         {assets.map((asset) => {
-          const active = !hiddenAssets.has(asset.symbol);
+          const active = colorSlots.includes(asset.symbol);
           return (
             <button
               key={asset.symbol}
               type="button"
               aria-pressed={active}
-              onClick={() => toggleAsset(asset.symbol)}
+              onClick={() => toggleColor(asset.symbol)}
+              aria-label={`Highlight ${asset.symbol}`}
+              disabled={!active && colorSlots.filter(Boolean).length >= 4}
               onMouseEnter={() => setHoveredSymbol(asset.symbol)}
               className={cn(
                 "cursor-pointer rounded-full border px-2 py-1 text-xs font-medium transition",
                 FOCUS_RING,
                 active
-                  ? "border-transparent"
+                  ? "bg-seer-accent-soft"
                   : "border-klerosUIComponentsStroke bg-klerosUIComponentsWhiteBackground text-klerosUIComponentsSecondaryText hover:border-klerosUIComponentsPrimaryBlue",
               )}
-              // Category colours vary in lightness, so the label colour has to
-              // follow the chip rather than always being white.
-              style={
-                active
-                  ? {
-                      backgroundColor: colorOf.get(asset.symbol),
-                      color: getReadableTextColor(
-                        colorOf.get(asset.symbol) ?? "#000000",
-                      ),
-                    }
-                  : undefined
-              }
+              style={{
+                borderColor: colorOf.get(asset.symbol),
+                color: "var(--seer-text)",
+              }}
             >
               {asset.symbol}
             </button>

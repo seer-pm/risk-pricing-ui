@@ -121,7 +121,7 @@ const NoToAllStrip = ({ outcome }: { outcome: RiskPricingOutcome }) => {
               className="size-2 shrink-0 rounded-full"
               style={{ backgroundColor: NO_TO_ALL_COLOR }}
             />
-            <h3 className="text-klerosUIComponentsPrimaryText text-base font-semibold tracking-wide uppercase">
+            <h3 className="text-klerosUIComponentsPrimaryText text-base font-semibold">
               No To All
             </h3>
             <WithHelpTooltip tooltipMsg={NO_TO_ALL_TOOLTIP} place="bottom" />
@@ -135,7 +135,7 @@ const NoToAllStrip = ({ outcome }: { outcome: RiskPricingOutcome }) => {
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <span
               className="text-xl font-bold tabular-nums"
-              style={{ color: NO_TO_ALL_COLOR }}
+              style={{ color: "var(--seer-text)" }}
             >
               {formatPd(displayValue)}
               <span className="ml-1 text-xs font-semibold">(Ann.)</span>
@@ -172,7 +172,7 @@ const NoToAllStrip = ({ outcome }: { outcome: RiskPricingOutcome }) => {
             value={displayValue}
             leftLabel=""
             rightLabel=""
-            aria-label="No To All probability — moving it rescales every asset's probability of default"
+            aria-label="No To All probability: moving it rescales every asset's probability of default"
             callback={handleChange}
             onChangeEnd={onChangeEnd}
             formatter={formatted}

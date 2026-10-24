@@ -13,7 +13,6 @@ import SeerHeaderBackground from "@/assets/png/seer-header-bg.png";
 import ChartBar from "@/assets/svg/chart-bar.svg";
 
 import { cn, formatPd } from "@/utils";
-import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
 import { endTime, marketMetadata } from "@/consts/markets";
 
@@ -139,16 +138,13 @@ const Header: React.FC = () => {
                     "flex flex-row gap-2",
                   )}
                   key={index}
-                  style={{ backgroundColor: color }}
+                  style={{ border: `1px solid ${color}` }}
                 >
-                  <p
-                    className="text-xs"
-                    style={{ color: getReadableTextColor(color) }}
-                  >
+                  <p className="text-xs" style={{ color: "var(--seer-text)" }}>
                     {outcome}
                     <span
                       className="mx-1 text-xs"
-                      style={{ color: getReadableTextColor(color) }}
+                      style={{ color: "var(--seer-text)" }}
                     >
                       |
                     </span>

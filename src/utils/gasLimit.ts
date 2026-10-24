@@ -39,7 +39,7 @@ function isRevert(error: unknown) {
 /**
  * Estimates gas for a contract call, applies buffer, and caps at Gnosis block limit.
  *
- * Throws if the call reverts — submitting it anyway just burns the user's gas,
+ * Throws if the call reverts: submitting it anyway just burns the user's gas,
  * and the reason the wallet reports afterwards is not necessarily ours (a
  * simulation without a `from` reports `TradeExecutor`'s `onlyOwner` failure
  * instead of the real inner revert).
