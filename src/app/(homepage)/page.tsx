@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo } from "react";
 
-import { Button } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { useLocalStorage, useToggle } from "react-use";
 import { Address } from "viem";
@@ -18,6 +17,7 @@ import { useMarketData } from "@/hooks/useMarketData";
 
 import FirstVisitGuide from "@/components/Guides/FirstVisit";
 import Loader from "@/components/Loader";
+import { Button } from "@/components/ui";
 
 import { isUndefined } from "@/utils";
 

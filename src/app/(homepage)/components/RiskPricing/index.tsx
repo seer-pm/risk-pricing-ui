@@ -1,8 +1,3 @@
-import {
-  Accordion,
-  CustomAccordion,
-  Tooltip,
-} from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Link from "next/link";
 
@@ -13,6 +8,8 @@ import { useAssetColorMap } from "@/hooks/useAssetColorMap";
 import { RiskPricingOutcome } from "@/hooks/useMarketData";
 import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 import { useRiskTokenPositionValue } from "@/hooks/useRiskTokenPositionValue";
+
+import { Accordion, CustomAccordion, Tooltip } from "@/components/ui";
 
 import CheckOutline from "@/assets/svg/check-outline-button.svg";
 import InfoIcon from "@/assets/svg/info.svg";
@@ -59,7 +56,7 @@ const RiskPricing = ({ outcome }: { outcome: RiskPricingOutcome }) => {
       aria-label="card"
       className={clsx(
         "bg-klerosUIComponentsLightBackground flex h-auto w-full max-w-full flex-col gap-4",
-        "transition-shadow hover:shadow-md [&>div]:my-0",
+        "transition-colors [&>div]:my-0",
       )}
       items={[
         {

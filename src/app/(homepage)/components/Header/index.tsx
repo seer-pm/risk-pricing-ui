@@ -1,4 +1,3 @@
-import { Tooltip } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Image from "next/image";
 
@@ -7,6 +6,7 @@ import { useRawMarketData } from "@/hooks/useMarketData";
 import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 
 import SeerLogo from "@/components/SeerLogo";
+import { Tooltip } from "@/components/ui";
 
 import HelpIcon from "@/assets/menu-icons/help.svg";
 import SeerHeaderBackground from "@/assets/png/seer-header-bg.png";

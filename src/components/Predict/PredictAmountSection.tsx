@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 
-import { AlertMessage, Checkbox } from "@kleros/ui-components-library";
 import clsx from "clsx";
+
+import { AlertMessage, Checkbox } from "@/components/ui";
 
 import { formatValue, isUndefined } from "@/utils";
 

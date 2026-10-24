@@ -247,3 +247,33 @@
     animation-iteration-count: infinite !important;
   }
 }
+
+@layer components {
+  .risk-dialog {
+    border-radius: var(--seer-radius-md);
+    border-color: var(--seer-border);
+    background: var(--seer-surface);
+    color: var(--seer-text);
+    box-shadow: 0 24px 64px rgb(20 18 35 / 0.28);
+  }
+  .seer-field input,
+  .risk-number-field input {
+    border-radius: var(--seer-radius-md);
+    color: var(--seer-text);
+    background: var(--seer-surface);
+    font-family: var(--seer-font-sans);
+    box-shadow: none;
+  }
+  .seer-input-group input {
+    border: 0;
+    min-width: 0;
+    width: 100%;
+  }
+  .seer-button .button-text {
+    color: inherit;
+    font: inherit;
+  }
+  .seer-button svg {
+    flex-shrink: 0;
+  }
+}

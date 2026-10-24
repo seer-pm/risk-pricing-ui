@@ -1,11 +1,12 @@
 import { useState } from "react";
 
-import { Button } from "@kleros/ui-components-library";
 import { waitForTransactionReceipt } from "@wagmi/core";
 import { Address } from "viem";
 import { useConfig } from "wagmi";
 
 import { useSimulateErc20Approve, useWriteErc20Approve } from "@/generated";
+
+import { Button } from "@/components/ui";
 
 import { isUndefined } from "@/utils";
 

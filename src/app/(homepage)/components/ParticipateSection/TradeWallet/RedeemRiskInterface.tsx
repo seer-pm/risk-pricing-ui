@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 
-import { Button, Modal } from "@kleros/ui-components-library";
 import { Address, formatUnits } from "viem";
 
 import { useRedeemRiskToTradeExecutor } from "@/hooks/tradeWallet/useRedeemRiskToTradeExecutor";
@@ -9,6 +8,7 @@ import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 import { useTokensBalances } from "@/hooks/useTokenBalances";
 
 import LightButton from "@/components/LightButton";
+import { Button, Modal } from "@/components/ui";
 
 import CloseIcon from "@/assets/svg/close-icon.svg";
 

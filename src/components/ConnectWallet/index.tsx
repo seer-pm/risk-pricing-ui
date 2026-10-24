@@ -1,9 +1,10 @@
 "use client";
 import React, { useCallback } from "react";
 
-import { Button } from "@kleros/ui-components-library";
 import { useAppKit, useAppKitState } from "@reown/appkit/react";
 import { useAccount, useSwitchChain } from "wagmi";
+
+import { Button } from "@/components/ui";
 
 import { DEFAULT_CHAIN } from "@/consts";
 

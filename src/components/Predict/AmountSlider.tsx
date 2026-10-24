@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
 
-import { Slider } from "@kleros/ui-components-library";
 import clsx from "clsx";
+
+import { Slider } from "@/components/ui";
 
 interface IAmountSlider {
   value: bigint;

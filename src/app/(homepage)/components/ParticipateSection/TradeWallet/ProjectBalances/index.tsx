@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 
-import { CustomAccordion } from "@kleros/ui-components-library";
 import clsx from "clsx";
 
 import { sortOutcomesByCategory } from "@/app/(homepage)/components/RiskPricing/constants";
@@ -9,6 +8,8 @@ import { useRiskPredictionStore } from "@/store/riskMarketStore";
 import { useTradeWallet } from "@/context/TradeWalletContext";
 import { useAssetColorMap } from "@/hooks/useAssetColorMap";
 import { useTokensBalances } from "@/hooks/useTokenBalances";
+
+import { CustomAccordion } from "@/components/ui";
 
 import ProjectAmount from "./ProjectAmount";
 

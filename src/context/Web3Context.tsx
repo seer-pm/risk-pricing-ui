@@ -2,10 +2,10 @@
 
 import React, { type ReactNode, useEffect } from "react";
 
-import { gnosis } from "@reown/appkit/networks";
-import { createAppKit } from "@reown/appkit/react";
 import { useTheme } from "next-themes";
 
+import { gnosis } from "@reown/appkit/networks";
+import { createAppKit } from "@reown/appkit/react";
 import { configureRpcProviders } from "@swapr/sdk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cookieToInitialState, WagmiProvider, type Config } from "wagmi";

@@ -1,4 +1,3 @@
-import { Button, Card, DropdownSelect } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Link from "next/link";
 import { useToggle } from "react-use";
@@ -9,6 +8,7 @@ import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 import { Skeleton } from "@/components/Skeleton";
+import { Button, Card, DropdownSelect } from "@/components/ui";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import ExternalArrow from "@/assets/svg/external-arrow.svg";

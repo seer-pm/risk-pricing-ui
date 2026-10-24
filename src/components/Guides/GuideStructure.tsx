@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 
-import { CompactPagination, Modal } from "@kleros/ui-components-library";
 import clsx from "clsx";
+
+import { CompactPagination, Modal } from "@/components/ui";
 
 import BookIcon from "@/assets/svg/book-open.svg";
 

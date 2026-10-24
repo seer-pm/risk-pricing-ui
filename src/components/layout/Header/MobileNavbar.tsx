@@ -1,4 +1,3 @@
-import { Button, Modal } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { useToggle } from "react-use";
 import { useAccount, useDisconnect } from "wagmi";
@@ -13,6 +12,7 @@ import EmailUpdates from "@/components/EmailUpdates";
 import LightButton from "@/components/LightButton";
 import QuickGuideButton from "@/components/QuickGuideButton";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Button, Modal } from "@/components/ui";
 
 import HelpIcon from "@/assets/menu-icons/help.svg";
 import HamburgerIcon from "@/assets/svg/hamburger.svg";

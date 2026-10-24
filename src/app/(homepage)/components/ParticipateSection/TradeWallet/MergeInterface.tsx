@@ -1,11 +1,5 @@
 import React, { FormEvent, useMemo, useState } from "react";
 
-import {
-  BigNumberField,
-  Button,
-  Form,
-  Modal,
-} from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { Address, formatUnits, parseUnits } from "viem";
 import { useAccount } from "wagmi";
@@ -16,6 +10,7 @@ import { useTradeExecutorRiskMarketMerge } from "@/hooks/tradeWallet/useTradeExe
 import { useTokensBalances } from "@/hooks/useTokenBalances";
 
 import LightButton from "@/components/LightButton";
+import { BigNumberField, Button, Form, Modal } from "@/components/ui";
 
 import CloseIcon from "@/assets/svg/close-icon.svg";
 

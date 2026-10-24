@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from "react";
 
-import { Button, Modal, TextField } from "@kleros/ui-components-library";
 import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 
@@ -14,6 +13,7 @@ import {
 
 import ConnectWallet from "@/components/ConnectWallet";
 import LightButton from "@/components/LightButton";
+import { Button, Modal, TextField } from "@/components/ui";
 
 import CloseIcon from "@/assets/svg/close-icon.svg";
 

@@ -2,8 +2,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Slider } from "@kleros/ui-components-library";
-
 import {
   countEditedAssets,
   selectAssets,
@@ -14,6 +12,7 @@ import { yearlySurvivalToQuarterly } from "@/hooks/useImpliedProbs";
 import { RiskPricingOutcome } from "@/hooks/useMarketData";
 
 import { Skeleton } from "@/components/Skeleton";
+import { Slider } from "@/components/ui";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import { cn, formatPd, SLIDER_PD_DECIMALS } from "@/utils";
@@ -112,7 +111,7 @@ const NoToAllStrip = ({ outcome }: { outcome: RiskPricingOutcome }) => {
         className={cn(
           // Opaque, or the asset cards show through as they scroll past.
           "bg-klerosUIComponentsWhiteBackground border-klerosUIComponentsStroke",
-          "rounded-base border shadow-md",
+          "rounded-surface border",
           "flex w-full flex-col gap-1 px-4 py-3 md:px-8",
         )}
       >

@@ -1,4 +1,3 @@
-import { Card } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Link from "next/link";
 import Papa from "papaparse";
@@ -6,6 +5,7 @@ import Papa from "papaparse";
 import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import SeerLogo from "@/components/SeerLogo";
+import { Card } from "@/components/ui";
 
 import Download from "@/assets/svg/download.svg";
 import ExternalArrow from "@/assets/svg/external-arrow.svg";

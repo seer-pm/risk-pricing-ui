@@ -11149,6 +11149,7 @@ __metadata:
     prettier: "npm:^3.5.3"
     prettier-plugin-tailwindcss: "npm:^0.6.11"
     react: "npm:^18"
+    react-aria-components: "npm:1.10.1"
     react-countdown: "npm:^2.3.6"
     react-dom: "npm:^18"
     react-jdenticon: "npm:^1.4.0"
@@ -14768,7 +14769,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-aria-components@npm:^1.7.1":
+"react-aria-components@npm:1.10.1, react-aria-components@npm:^1.7.1":
   version: 1.10.1
   resolution: "react-aria-components@npm:1.10.1"
   dependencies:

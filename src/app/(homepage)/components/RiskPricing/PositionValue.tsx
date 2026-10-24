@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 
-import { Tooltip } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Link from "next/link";
 import { Address } from "viem";
@@ -8,6 +7,8 @@ import { Address } from "viem";
 import { RiskPricingOutcome } from "@/hooks/useMarketData";
 import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 import { useRiskTokenPositionValue } from "@/hooks/useRiskTokenPositionValue";
+
+import { Tooltip } from "@/components/ui";
 
 import InfoIcon from "@/assets/svg/info.svg";
 

@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Tooltip } from "@kleros/ui-components-library";
+import { Tooltip } from "@/components/ui";
 
 import HelpIcon from "@/assets/menu-icons/help.svg";
 

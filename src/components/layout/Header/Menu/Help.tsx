@@ -1,8 +1,9 @@
 import React from "react";
 
-import { Modal } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Link from "next/link";
+
+import { Modal } from "@/components/ui";
 
 import Guide from "@/assets/menu-icons/book.svg";
 import Bug from "@/assets/menu-icons/bug.svg";

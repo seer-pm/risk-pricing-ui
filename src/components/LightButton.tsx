@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 
-import { Button } from "@kleros/ui-components-library";
+import { Button } from "@/components/ui";
 
 import { cn } from "@/utils";
 
@@ -27,8 +27,8 @@ const LightButton: React.FC<ILightButton> = ({
     aria-label={ariaLabel}
     {...props}
     className={cn(
-      "hover-short-transition rounded-lg! bg-transparent p-2",
-      "hover:bg-whiteLowOpacityStrong",
+      "seer-button-ghost p-2",
+      "hover:bg-seer-raised",
       FOCUS_RING,
       "[&>svg]:fill-klerosUIComponentsSecondaryText hover:[&>svg]:fill-klerosUIComponentsPrimaryText [&>svg]:mr-0",
       "[&>svg_path]:fill-klerosUIComponentsSecondaryText hover:[&>svg_path]:fill-klerosUIComponentsPrimaryText",

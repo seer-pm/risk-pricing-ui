@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import { ThemeToggle as KitThemeToggle } from "@seer-pm/ui-kit/react";
 import { useTheme } from "next-themes";
+
+import { ThemeToggle as KitThemeToggle } from "@seer-pm/ui-kit/react";
 
 import { cn } from "@/utils";
 

@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
 
-import { CustomTimeline } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { Address } from "viem";
+
+import { CustomTimeline } from "@/components/ui";
 
 import CheckOutline from "@/assets/svg/check-outline.svg";
 import CircleOutline from "@/assets/svg/circle-outline.svg";

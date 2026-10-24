@@ -2,12 +2,12 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Slider } from "@kleros/ui-components-library";
 import clsx from "clsx";
 
 import { RiskPricingOutcome } from "@/hooks/useMarketData";
 
 import { Skeleton } from "@/components/Skeleton";
+import { Slider } from "@/components/ui";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import { formatPd, SLIDER_PD_DECIMALS } from "@/utils";

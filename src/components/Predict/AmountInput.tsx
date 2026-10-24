@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 
-import { BigNumberField, DropdownSelect } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { parseUnits, formatUnits } from "viem";
+
+import { BigNumberField, DropdownSelect } from "@/components/ui";
 
 import { cn, formatValue, isUndefined } from "@/utils";
 
@@ -67,7 +68,7 @@ const PredictAmountInput: React.FC<IPredictAmountInput> = ({
   const isXDai = selectedToken === TokenType.xDAI;
 
   return (
-    <div className={cn("relative mb-8 w-full md:min-w-lg", className)}>
+    <div className={cn("relative mb-8 w-full md:min-w-0", className)}>
       <div className="flex items-center justify-between">
         <span className="text-klerosUIComponentsSecondaryText mb-1 text-sm">
           {isFirstPrediction ? "You pay" : "Extra collateral"}
@@ -91,7 +92,7 @@ const PredictAmountInput: React.FC<IPredictAmountInput> = ({
         </div>
       </div>
 
-      <div className="border-klerosUIComponentsStroke rounded-base flex h-fit flex-row border">
+      <div className="border-klerosUIComponentsStroke seer-input-group flex h-fit flex-row border">
         <BigNumberField
           isRequired
           className={clsx(
