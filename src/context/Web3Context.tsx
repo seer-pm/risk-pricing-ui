@@ -1,9 +1,11 @@
 "use client";
 
-import React, { type ReactNode } from "react";
+import React, { type ReactNode, useEffect } from "react";
 
 import { gnosis } from "@reown/appkit/networks";
 import { createAppKit } from "@reown/appkit/react";
+import { useTheme } from "next-themes";
+
 import { configureRpcProviders } from "@swapr/sdk";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cookieToInitialState, WagmiProvider, type Config } from "wagmi";
@@ -33,7 +35,12 @@ const metadata = {
   icons: ["icon1.png"],
 };
 
-createAppKit({
+const appKit = createAppKit({
+  themeVariables: {
+    "--w3m-accent": "#7d33ff",
+    "--w3m-font-family": "Open Sans Variable, Open Sans, sans-serif",
+    "--w3m-border-radius-master": "2px",
+  },
   adapters: [wagmiAdapter],
   projectId: reownProjectId,
   networks: [gnosis],
@@ -51,6 +58,10 @@ interface IWeb3Context {
 }
 
 const Web3Context: React.FC<IWeb3Context> = ({ children, cookies }) => {
+  const { resolvedTheme } = useTheme();
+  useEffect(() => {
+    appKit.setThemeMode(resolvedTheme === "dark" ? "dark" : "light");
+  }, [resolvedTheme]);
   const initialState = cookieToInitialState(
     wagmiAdapter.wagmiConfig as Config,
     cookies,

@@ -2408,6 +2408,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@fontsource-variable/open-sans@npm:^5.2.5":
+  version: 5.3.0
+  resolution: "@fontsource-variable/open-sans@npm:5.3.0"
+  checksum: 10c0/72491e9073af2cf6e880a8adb2e019ab39b42bd6f98ad90bb3274b6c6da79a03f83253250600b2ddb8a0b8d72637061d6f338332ef16bcc0cf94226a0c711b61
+  languageName: node
+  linkType: hard
+
 "@formatjs/ecma402-abstract@npm:2.3.4":
   version: 2.3.4
   resolution: "@formatjs/ecma402-abstract@npm:2.3.4"
@@ -6191,6 +6198,20 @@ __metadata:
     "@noble/hashes": "npm:~1.8.0"
     "@scure/base": "npm:~1.2.5"
   checksum: 10c0/73a54b5566a50a3f8348a5cfd74d2092efeefc485efbed83d7a7374ffd9a75defddf446e8e5ea0385e4adb49a94b8ae83c5bad3e16333af400e932f7da3aaff8
+  languageName: node
+  linkType: hard
+
+"@seer-pm/ui-kit@file:vendor/seer-pm-ui-kit-0.4.0.tgz::locator=futarchy-poc-14%40workspace%3A.":
+  version: 0.4.0
+  resolution: "@seer-pm/ui-kit@file:vendor/seer-pm-ui-kit-0.4.0.tgz#vendor/seer-pm-ui-kit-0.4.0.tgz::hash=6fcea6&locator=futarchy-poc-14%40workspace%3A."
+  dependencies:
+    "@fontsource-variable/open-sans": "npm:^5.2.5"
+  peerDependencies:
+    react: ">=18.0.0"
+  peerDependenciesMeta:
+    react:
+      optional: true
+  checksum: 10c0/3bddae4625a2aab209f5efaa9cf6dcc07b0e96cd921d998787977776a2105160179df4099c4f620c91352bf778b52084e08e9d7c71255ff5c0a49c10f4b80dfa
   languageName: node
   linkType: hard
 
@@ -11096,6 +11117,7 @@ __metadata:
     "@kleros/ui-components-library": "npm:^3.7.0"
     "@reown/appkit": "npm:^1.7.11"
     "@reown/appkit-adapter-wagmi": "npm:^1.7.11"
+    "@seer-pm/ui-kit": "file:vendor/seer-pm-ui-kit-0.4.0.tgz"
     "@svgr/webpack": "npm:^8.1.0"
     "@swapr/sdk": "https://github.com/seer-pm/swapr-sdk/archive/6dea7e63f7e05c84a4374717ee1ad5baca86f7de.tar.gz"
     "@tailwindcss/postcss": "npm:^4.1.4"

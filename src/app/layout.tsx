@@ -1,7 +1,6 @@
 import { ThemeProvider } from "next-themes";
 
 import clsx from "clsx";
-import localFont from "next/font/local";
 import { headers } from "next/headers";
 
 import Web3Context from "@/context/Web3Context";
@@ -14,17 +13,6 @@ import "./globals.css";
 
 export { metadata } from "@/consts/metadata";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
-});
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,18 +21,7 @@ export default function RootLayout({
   const cookies = headers().get("cookie");
 
   return (
-    // The font variables go on <html>, not <body>: globals.css maps them to
-    // Tailwind's --font-sans/--font-mono in an @theme block, which resolves at
-    // :root. Declared on <body> they'd be out of scope there and the whole
-    // chain would collapse to the ui-sans-serif fallback.
-    <html
-      lang="en"
-      className={clsx(
-        `${geistSans.variable} ${geistMono.variable}`,
-        "box-border size-full",
-      )}
-      suppressHydrationWarning
-    >
+    <html lang="en" className="box-border size-full" suppressHydrationWarning>
       <head>
         <meta name="apple-mobile-web-app-title" content="Foresight | Kleros" />
       </head>
@@ -54,13 +31,18 @@ export default function RootLayout({
           "flex size-full flex-col",
         )}
       >
-        <Web3Context {...{ cookies }}>
-          <ThemeProvider themes={["light", "dark"]} attribute="class">
+        <ThemeProvider
+          themes={["light", "dark"]}
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+        >
+          <Web3Context {...{ cookies }}>
             <Header />
             {children}
             <Footer />
-          </ThemeProvider>
-        </Web3Context>
+          </Web3Context>
+        </ThemeProvider>
       </body>
     </html>
   );
