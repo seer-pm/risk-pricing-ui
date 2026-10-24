@@ -40,3 +40,6 @@ next-env.d.ts
 
 # gql
 /src/hooks/liquidity/gql
+
+# Local design captures and verification logs
+/.impeccable/review/
