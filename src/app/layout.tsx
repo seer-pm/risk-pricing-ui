@@ -37,6 +37,13 @@ export default function RootLayout({
           "flex min-h-screen flex-col",
         )}
       >
+        <div
+          hidden
+          dangerouslySetInnerHTML={{
+            __html:
+              "<!-- THESIS: read default risk before predicting. OWN-WORLD: Seer Electric Foundation, shared tokens, Open Sans and hairline surfaces in both themes. STORY: the exact question, market estimates, askers and resolution precede evidence and trading. FIRST VIEWPORT: complete lockup, question, period and attribution lead into aligned annualized and quarterly estimates for 33 assets. FORM: user-approved code-first adaptation of the shared kit and Deep reference. FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance. -->",
+          }}
+        />
         <a
           href="#main-content"
           className="seer-button seer-button-primary sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50"

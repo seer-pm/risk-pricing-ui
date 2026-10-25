@@ -41,7 +41,10 @@ export default function Header() {
   const seerUrl = `https://app.seer.pm/markets/100/${RISK_PRICING_MARKET_ID}`;
 
   return (
-    <section className="space-y-6" aria-labelledby="market-question">
+    <section
+      className="space-y-4 sm:space-y-6"
+      aria-labelledby="market-question"
+    >
       <h1
         id="market-question"
         className="text-seer-text max-w-4xl text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
@@ -72,41 +75,60 @@ export default function Header() {
         </span>
         <span>Gnosis · sDAI</span>
       </div>
+      <div className="grid gap-3 text-sm sm:grid-cols-2">
+        <p className="text-seer-text">
+          <span className="text-seer-muted">Asked by </span>
+          Risk Pricing UI team · Seer
+        </p>
+        <p className="text-seer-text">
+          <span className="text-seer-muted">Resolved by </span>
+          Reality.eth · <span className="text-seer-muted">Disputes: </span>
+          Kleros
+        </p>
+      </div>
       <div className="border-seer-border flex flex-wrap gap-x-8 gap-y-3 border-y py-4 text-sm">
-        {market?.creator && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-seer-muted">Market creator</span>
+        <details className="text-seer-muted basis-full">
+          <summary className="text-seer-text w-fit cursor-pointer font-semibold">
+            Market rules and contracts
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
+            {" "}
+            {market?.creator && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-seer-muted">Market creator</span>
+                <a
+                  className="text-seer-accent-text font-mono underline underline-offset-4"
+                  href={`https://gnosisscan.io/address/${market.creator}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {shortenAddress(market.creator as `0x${string}`)}
+                </a>
+              </div>
+            )}
+            {arbitrator && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-seer-muted">Arbitrator</span>
+                <a
+                  className="text-seer-accent-text font-mono underline underline-offset-4"
+                  href={`https://gnosisscan.io/address/${arbitrator}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {shortenAddress(arbitrator)}
+                </a>
+              </div>
+            )}
             <a
-              className="text-seer-accent-text font-mono underline underline-offset-4"
-              href={`https://gnosisscan.io/address/${market.creator}`}
+              className="text-seer-accent-text font-semibold underline underline-offset-4"
+              href={seerUrl}
               target="_blank"
               rel="noreferrer"
             >
-              {shortenAddress(market.creator as `0x${string}`)}
+              Market rules on Seer
             </a>
           </div>
-        )}
-        {arbitrator && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-seer-muted">Arbitrator</span>
-            <a
-              className="text-seer-accent-text font-mono underline underline-offset-4"
-              href={`https://gnosisscan.io/address/${arbitrator}`}
-              target="_blank"
-              rel="noreferrer"
-            >
-              {shortenAddress(arbitrator)}
-            </a>
-          </div>
-        )}
-        <a
-          className="text-seer-accent-text font-semibold underline underline-offset-4"
-          href={seerUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Market rules on Seer
-        </a>
+        </details>
         <details className="text-seer-muted basis-full">
           <summary className="text-seer-text w-fit cursor-pointer font-semibold">
             What counts as a default?

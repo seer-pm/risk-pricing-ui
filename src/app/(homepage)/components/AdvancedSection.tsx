@@ -73,7 +73,7 @@ const AdvancedSection: React.FC = () => {
       <div className="shrink-0">
         <BrandLockup />
       </div>
-      <BrandStreak className="text-seer-purple-on-ink pointer-events-none absolute top-0 -right-12 -z-10 h-full opacity-15" />
+      <BrandStreak className="text-seer-purple-on-ink pointer-events-none absolute top-0 -right-12 -z-10 hidden h-full opacity-15 sm:block" />
     </section>
   );
 };

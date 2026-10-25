@@ -87,7 +87,7 @@ export default function Home() {
   return (
     <main
       id="main-content"
-      className="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8 lg:py-10"
+      className="mx-auto w-full max-w-[1240px] px-4 py-6 sm:px-6 sm:py-8 lg:px-8 lg:py-10"
     >
       <div className="space-y-6">
         <Header />

@@ -8,9 +8,11 @@ web
 
 ## Users
 
-The brief prioritizes people reading market estimates of default risk before taking any trading action. Traders contribute predictions for individual assets or upload a CSV and execute multiple predictions through a trade wallet.
+The question is set by the team administering the Risk Pricing UI, currently Seer (confirmed 2026-10-24).
 
-Open: the organization asking the question, the primary institutional readers, and the formal resolver require product-owner confirmation. Credora supplies reference metrics; that alone does not establish any of those roles.
+Readers include DeFi traders, risk managers, DAOs, insurers, and hedging protocols. They use the estimates to assess and compare default risk. Traders can contribute predictions for individual assets or upload a CSV and execute multiple predictions through a trade wallet.
+
+Reality.eth determines the default outcome. Kleros handles disputes. Credora supplies reference metrics and does not determine the outcome.
 
 ## Product Purpose
 

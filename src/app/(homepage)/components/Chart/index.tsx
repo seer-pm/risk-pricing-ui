@@ -7,6 +7,7 @@ import { useTheme } from "next-themes";
 import {
   createChart,
   type ISeriesApi,
+  type LineWidth,
   LineSeries,
   LineStyle,
   PriceScaleMode,
@@ -37,6 +38,7 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
   const seriesRefMap = useRef<Record<string, ISeriesApi<"Line">>>({});
   const seriesColorsRef = useRef<Record<string, string>>({});
   const seriesOrderRef = useRef<Record<string, number>>({});
+  const seriesWidthsRef = useRef<Record<string, LineWidth>>({});
 
   const applyHighlight = React.useCallback((symbol: string | null) => {
     const map = seriesRefMap.current;
@@ -47,7 +49,7 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
     Object.entries(map).forEach(([name, s]) => {
       const isHovered = name === symbol;
       s.applyOptions({
-        lineWidth: isHovered ? 4 : 2,
+        lineWidth: isHovered ? 3 : (seriesWidthsRef.current[name] ?? 1),
         color:
           (isResetting || isHovered ? colors[name] : strokeColor) ??
           strokeColor,
@@ -126,18 +128,29 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
     seriesColorsRef.current = {};
     seriesOrderRef.current = {};
     let orderIndex = 0;
-    series.forEach((s) => {
-      if (s.data.length === 0) return;
-      const lineSeries = chart.addSeries(LineSeries, {
-        color: cssColor(s.color),
-        lineWidth: 2,
-        title: shortenName(s.symbol),
+    [...series]
+      .sort(
+        (a, b) =>
+          Number(a.color !== "var(--seer-muted)") -
+          Number(b.color !== "var(--seer-muted)"),
+      )
+      .forEach((s) => {
+        if (s.data.length === 0) return;
+        const isContext = s.color === "var(--seer-muted)";
+        const lineSeries = chart.addSeries(LineSeries, {
+          color: cssColor(s.color),
+          lineWidth: isContext ? 1 : 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+          crosshairMarkerVisible: !isContext,
+          title: shortenName(s.symbol),
+        });
+        lineSeries.setData(s.data);
+        seriesRefMap.current[s.symbol] = lineSeries;
+        seriesColorsRef.current[s.symbol] = cssColor(s.color);
+        seriesOrderRef.current[s.symbol] = orderIndex++;
+        seriesWidthsRef.current[s.symbol] = isContext ? 1 : 2;
       });
-      lineSeries.setData(s.data);
-      seriesRefMap.current[s.symbol] = lineSeries;
-      seriesColorsRef.current[s.symbol] = cssColor(s.color);
-      seriesOrderRef.current[s.symbol] = orderIndex++;
-    });
 
     // Must run after the series are added - fitting an empty chart is a no-op.
     chart.timeScale().fitContent();
@@ -152,6 +165,7 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
       seriesRefMap.current = {};
       seriesColorsRef.current = {};
       seriesOrderRef.current = {};
+      seriesWidthsRef.current = {};
       chart.remove();
     };
   }, [series, resolvedTheme, applyHighlight]);

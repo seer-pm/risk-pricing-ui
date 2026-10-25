@@ -34,7 +34,6 @@ export default function MarketEstimate({
 }: IMarketEstimate) {
   const [view, setView] = useState<RiskView>("bars");
   const [category, setCategory] = useState<AssetCategoryId | "all">("all");
-  const [showAssets, setShowAssets] = useState(true);
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
   const [colorSlots, setColorSlots] = useState<(string | null)[]>(() =>
     assets.slice(0, 4).map((asset) => asset.symbol),
@@ -54,11 +53,9 @@ export default function MarketEstimate({
     () =>
       assets.filter(
         (asset) =>
-          showAssets &&
-          (category === "all" ||
-            getAssetCategory(asset.symbol).id === category),
+          category === "all" || getAssetCategory(asset.symbol).id === category,
       ),
-    [assets, category, showAssets],
+    [assets, category],
   );
   const visibleSeries = useMemo(
     () =>
@@ -167,12 +164,11 @@ export default function MarketEstimate({
               key={id}
               onClick={() => {
                 setCategory(id);
-                setShowAssets(true);
               }}
-              aria-pressed={category === id && showAssets}
+              aria-pressed={category === id}
               className={cn(
                 "seer-button seer-button-ghost seer-button-sm",
-                category === id && showAssets
+                category === id
                   ? "bg-seer-accent-soft text-seer-accent-text"
                   : "text-seer-muted",
               )}
@@ -226,17 +222,43 @@ export default function MarketEstimate({
         <button
           type="button"
           className="seer-button seer-button-ghost seer-button-sm mt-3"
-          onClick={() => setShowAssets((current) => !current)}
+          onClick={() => setColorSlots([null, null, null, null])}
         >
-          {showAssets ? "Clear all" : "Select all"}
+          Clear highlights
         </button>
       </details>
+      {view === "overTime" && (
+        <ul
+          aria-label="Highlighted asset estimates"
+          className="text-seer-text mb-4 flex flex-wrap gap-x-6 gap-y-2 text-sm"
+        >
+          {colorSlots.flatMap((symbol, slot) => {
+            const asset = visibleAssets.find(
+              (candidate) => candidate.symbol === symbol,
+            );
+            return asset
+              ? [
+                  <li key={symbol} className="flex items-center gap-2">
+                    <span
+                      className="size-2 rounded-full"
+                      style={{
+                        backgroundColor: `var(--seer-series-${slot + 1})`,
+                      }}
+                      aria-hidden="true"
+                    />
+                    <span className="font-semibold">{asset.symbol}</span>
+                    <span>
+                      {formatPd(asset.risk)}{" "}
+                      <span className="text-seer-muted text-xs">(Ann.)</span>
+                    </span>
+                  </li>,
+                ]
+              : [];
+          })}
+        </ul>
+      )}
       {view === "bars" ? (
         <MarketEstimateRisk assets={visibleAssets} colorOf={colorOf} />
-      ) : !showAssets ? (
-        <p className="text-seer-muted flex min-h-60 items-center justify-center text-sm">
-          No assets selected: pick a category or asset above to plot it.
-        </p>
       ) : isEmpty || error ? (
         <p className="text-seer-muted flex min-h-60 items-center justify-center text-sm">
           {error
