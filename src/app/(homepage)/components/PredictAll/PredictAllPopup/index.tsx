@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
 
-import { Button, Modal } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { useToggle } from "react-use";
 import { useAccount, useBalance } from "wagmi";
@@ -21,6 +20,7 @@ import { useTokensBalances } from "@/hooks/useTokenBalances";
 import { PredictAmountSection } from "@/components/Predict/PredictAmountSection";
 import PredictSteps from "@/components/Predict/PredictSteps";
 import { ScrollFade } from "@/components/ScrollFade";
+import { Button, Modal } from "@/components/ui";
 
 import { isUndefined } from "@/utils";
 

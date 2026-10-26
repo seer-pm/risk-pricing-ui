@@ -1,27 +1,28 @@
 import { Metadata } from "next";
 
-export const websiteUrl = "https://foresight.kleros.io";
-export const siteName = "foresight.kleros.io";
+import { riskApp } from "./brand";
+
+export const websiteUrl = riskApp.url;
+export const siteName = riskApp.name;
 
 export const metadata: Metadata = {
-  title: "Foresight | Kleros",
-  description: "Prediction markets for distilled human judgement",
+  title: "Risk Pricing | Seer",
+  description: riskApp.summary,
   metadataBase: new URL(websiteUrl),
   twitter: {
     card: "summary_large_image",
-    title: "Foresight | Kleros",
-    description: "Prediction markets for distilled human judgement",
+    title: "Risk Pricing | Seer",
+    description: riskApp.summary,
     site: siteName,
-    creator: "@kleros_io",
-    creatorId: "1467726470533754880",
-    images: ["futarchy_kleros.png"],
+    creator: "@seer_pm",
+    images: ["seer-og.png"],
   },
   openGraph: {
-    title: "Foresight | Kleros",
-    description: "Prediction markets for distilled human judgement",
+    title: "Risk Pricing | Seer",
+    description: riskApp.summary,
     url: websiteUrl,
     siteName: siteName,
-    images: ["futarchy_kleros.png"],
+    images: ["seer-og.png"],
     locale: "en_US",
     type: "website",
   },

@@ -6,13 +6,7 @@ import { useRiskPdHistory } from "@/hooks/useRiskPdHistory";
 
 import Loader from "@/components/Loader";
 
-import ChartBarIcon from "@/assets/svg/chart-bar.svg";
-import StatsBarIcon from "@/assets/svg/stats-bar.svg";
-
-import { cn } from "@/utils";
-import { getReadableTextColor } from "@/utils/getReadableTextColor";
-
-import { FOCUS_RING } from "@/consts/styles";
+import { cn, formatPd } from "@/utils";
 
 import Chart from "../Chart";
 import {
@@ -27,292 +21,260 @@ import MarketEstimateRisk, {
 } from "../RiskPricing/MarketEstimateRisk";
 
 export type RiskView = "bars" | "overTime";
-
-const VIEWS: Array<{
-  id: RiskView;
-  label: string;
-  Icon: React.FC<{ className?: string }>;
-}> = [
-  { id: "bars", label: "Risk bars", Icon: StatsBarIcon },
-  { id: "overTime", label: "Over time", Icon: ChartBarIcon },
-];
-
-type CategoryFilter = AssetCategoryId | "all";
-
 interface IMarketEstimate {
   assets: AssetRisk[];
   noToAllProbability?: number;
   noToAllQuarterlyProbability?: number;
 }
 
-/**
- * Owns everything the two views share - title, asset legend, and the view
- * toggle - so switching modes only swaps the plot underneath. Asset visibility
- * and colours are held here rather than per-view, which is what keeps a hidden
- * asset hidden (and every asset the same colour) across a mode switch.
- */
-const MarketEstimate: React.FC<IMarketEstimate> = ({
+export default function MarketEstimate({
   assets,
   noToAllProbability,
   noToAllQuarterlyProbability,
-}) => {
+}: IMarketEstimate) {
   const [view, setView] = useState<RiskView>("bars");
-
-  // Gated on the view: the solve costs nothing for users who never open the
-  // time-series tab, and is cached for the session once they do.
-  const {
-    series,
-    isLoading: isChartLoading,
-    isEmpty: isChartEmpty,
-    error: chartError,
-    progress: chartProgress,
-  } = useRiskPdHistory(view === "overTime");
-
-  const [hiddenAssets, setHiddenAssets] = useState<Set<string>>(new Set());
+  const [category, setCategory] = useState<AssetCategoryId | "all">("all");
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
-
-  const toggleAsset = (symbol: string) =>
-    setHiddenAssets((prev) => {
-      const next = new Set(prev);
-      if (next.has(symbol)) next.delete(symbol);
-      else next.add(symbol);
-      return next;
-    });
-
-  // Only offer a category that the market actually lists.
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<AssetCategoryId, number>();
-    assets.forEach((asset) => {
-      const { id } = getAssetCategory(asset.symbol);
-      counts.set(id, (counts.get(id) ?? 0) + 1);
-    });
-    return counts;
-  }, [assets]);
-
-  // Picking a category is a bulk legend selection: its assets are selected and
-  // every other one is deselected, so the two controls always agree.
-  const selectCategory = (id: CategoryFilter) =>
-    setHiddenAssets(
-      id === "all"
-        ? new Set()
-        : new Set(
-            assets
-              .filter((a) => getAssetCategory(a.symbol).id !== id)
-              .map((a) => a.symbol),
-          ),
-    );
-
-  // Derived from the legend rather than stored, so toggling a single chip drops
-  // the category highlight instead of leaving it lying about the selection.
-  const activeCategory = useMemo((): CategoryFilter | null => {
-    if (hiddenAssets.size === 0) return "all";
-    const visible = assets.filter((a) => !hiddenAssets.has(a.symbol));
-    if (!visible.length) return null;
-    const { id } = getAssetCategory(visible[0].symbol);
-    const isWholeCategory =
-      visible.length === categoryCounts.get(id) &&
-      visible.every((a) => getAssetCategory(a.symbol).id === id);
-    return isWholeCategory ? id : null;
-  }, [assets, hiddenAssets, categoryCounts]);
-
-  const allHidden = hiddenAssets.size === assets.length && assets.length > 0;
-  const toggleAll = () =>
-    setHiddenAssets(
-      allHidden ? new Set() : new Set(assets.map((a) => a.symbol)),
-    );
-
+  const [colorSlots, setColorSlots] = useState<(string | null)[]>(() =>
+    assets.slice(0, 4).map((asset) => asset.symbol),
+  );
+  const { series, isLoading, isEmpty, error, progress } = useRiskPdHistory(
+    view === "overTime",
+  );
   const colorOf = useMemo(
-    () => buildAssetColorMap(assets.map((a) => a.symbol)),
-    [assets],
+    () =>
+      buildAssetColorMap(
+        assets.map((asset) => asset.symbol),
+        colorSlots,
+      ),
+    [assets, colorSlots],
   );
-
   const visibleAssets = useMemo(
-    () => assets.filter((a) => !hiddenAssets.has(a.symbol)),
-    [assets, hiddenAssets],
+    () =>
+      assets.filter(
+        (asset) =>
+          category === "all" || getAssetCategory(asset.symbol).id === category,
+      ),
+    [assets, category],
   );
-
-  // The history hook returns series in market order; group them like the bars
-  // so the two views list the same assets in the same order.
   const visibleSeries = useMemo(
     () =>
       sortAssetsByCategory(
-        series?.filter((s) => !hiddenAssets.has(s.symbol)) ?? [],
-        (s) => s.symbol,
+        (series ?? [])
+          .filter((line) =>
+            visibleAssets.some((asset) => asset.symbol === line.symbol),
+          )
+          .map((line) => ({ ...line, color: colorOf.get(line.symbol)! })),
+        (line) => line.symbol,
       ),
-    [series, hiddenAssets],
+    [series, visibleAssets, colorOf],
   );
+  const toggleColor = (symbol: string) =>
+    setColorSlots((current) => {
+      const slots = [...current];
+      const existing = slots.indexOf(symbol);
+      if (existing >= 0) slots[existing] = null;
+      else {
+        const empty = slots.indexOf(null);
+        if (empty >= 0) slots[empty] = symbol;
+        else if (slots.length < 4) slots.push(symbol);
+      }
+      return slots;
+    });
 
   return (
-    <div className="w-full">
-      {/* Title + view toggle */}
-      <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="text-klerosUIComponentsPrimaryText text-2xl font-semibold">
-          Market Estimate Risk
+    <section
+      id="market-estimates"
+      aria-labelledby="estimates-title"
+      className="rounded-surface border-seer-border bg-seer-surface scroll-mt-24 border p-4 sm:p-6"
+    >
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2
+          id="estimates-title"
+          className="text-seer-text text-xl font-semibold"
+        >
+          Market estimates
         </h2>
-        <div className="border-klerosUIComponentsStroke flex items-center gap-1.5 rounded-lg border p-1">
-          {VIEWS.map(({ id, label, Icon }) => {
-            const isActive = id === view;
-            return (
-              <button
-                key={id}
-                type="button"
-                title={label}
-                aria-label={label}
-                aria-pressed={isActive}
-                onClick={() => setView(id)}
-                className={cn(
-                  "flex cursor-pointer items-center justify-center gap-2 rounded-lg p-2 transition-colors",
-                  FOCUS_RING,
-                  // The icons hardcode a fill, so recolour their paths directly.
-                  "[&_path]:fill-current",
-                  isActive
-                    ? "bg-klerosUIComponentsMediumBlue text-klerosUIComponentsPrimaryBlue ring-klerosUIComponentsPrimaryBlue ring-1"
-                    : "text-klerosUIComponentsPrimaryText hover:text-klerosUIComponentsPrimaryBlue",
-                )}
-              >
-                <Icon className="size-6" />
-                <span className="hidden text-sm font-medium sm:inline">
-                  {label}
-                </span>
-              </button>
-            );
-          })}
+        <div
+          className="rounded-control bg-seer-surface-raised flex items-center gap-1 p-1"
+          role="group"
+          aria-label="Estimate view"
+        >
+          {(
+            [
+              { id: "bars", label: "Risk bars" },
+              { id: "overTime", label: "Over time" },
+            ] as const
+          ).map(({ id, label }) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={view === id}
+              onClick={() => setView(id)}
+              className={cn(
+                "seer-button seer-button-ghost seer-button-sm",
+                view === id && "bg-seer-surface text-seer-accent-text",
+              )}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
-
-      {/* Category selector: a bulk control over the legend below */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      {noToAllProbability !== undefined && (
+        <div className="border-seer-border mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-y py-3 text-sm">
+          <span className="text-seer-muted">
+            Chance that no listed asset defaults
+          </span>
+          <span className="text-seer-text flex flex-wrap items-baseline gap-4">
+            <span className="font-semibold">
+              {formatPd(noToAllProbability)}{" "}
+              <span className="text-seer-muted text-xs font-normal">
+                (Ann.)
+              </span>
+            </span>
+            {noToAllQuarterlyProbability !== undefined && (
+              <span>
+                {formatPd(noToAllQuarterlyProbability)}{" "}
+                <span className="text-seer-muted text-xs">(Quart.)</span>
+              </span>
+            )}
+          </span>
+        </div>
+      )}
+      <div
+        className="mb-4 flex flex-wrap items-center gap-1"
+        role="group"
+        aria-label="Asset category"
+      >
         {[
-          { id: "all" as const, label: "All", count: assets.length, color: "" },
-          ...ASSET_CATEGORIES.map(({ id, label, color }) => ({
+          { id: "all" as const, label: "All", count: assets.length },
+          ...ASSET_CATEGORIES.map(({ id, label }) => ({
             id,
             label,
-            color,
-            count: categoryCounts.get(id) ?? 0,
+            count: assets.filter(
+              (asset) => getAssetCategory(asset.symbol).id === id,
+            ).length,
           })),
         ]
           .filter(({ count }) => count > 0)
-          .map(({ id, label, count, color }) => {
-            const isActive = id === activeCategory;
+          .map(({ id, label, count }) => (
+            <button
+              type="button"
+              key={id}
+              onClick={() => {
+                setCategory(id);
+              }}
+              aria-pressed={category === id}
+              className={cn(
+                "seer-button seer-button-ghost seer-button-sm",
+                category === id
+                  ? "bg-seer-accent-soft text-seer-accent-text"
+                  : "text-seer-muted",
+              )}
+            >
+              <span>
+                {label} <span className="ml-1 font-normal">{count}</span>
+              </span>
+            </button>
+          ))}
+      </div>
+      <details className="mb-5">
+        <summary className="text-seer-accent-text w-fit cursor-pointer text-sm font-semibold">
+          Choose chart highlights ({colorSlots.filter(Boolean).length}/4)
+        </summary>
+        <p className="text-seer-muted my-3 max-w-prose text-sm">
+          Highlight up to four assets. Other assets remain visible as context.
+          Deselect a highlighted asset to choose another.
+        </p>
+        <div
+          className="flex flex-wrap gap-2"
+          onMouseLeave={() => setHoveredSymbol(null)}
+        >
+          {assets.map((asset) => {
+            const active = colorSlots.includes(asset.symbol);
             return (
               <button
-                key={id}
+                key={asset.symbol}
                 type="button"
-                aria-pressed={isActive}
-                onClick={() => selectCategory(id)}
+                aria-pressed={active}
+                aria-label={`Highlight ${asset.symbol}`}
+                disabled={!active && colorSlots.filter(Boolean).length >= 4}
+                onClick={() => toggleColor(asset.symbol)}
+                onMouseEnter={() => setHoveredSymbol(asset.symbol)}
+                onFocus={() => setHoveredSymbol(asset.symbol)}
+                onBlur={() => setHoveredSymbol(null)}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3.5 py-2 text-sm font-semibold transition-colors",
-                  FOCUS_RING,
-                  isActive
-                    ? "border-transparent"
-                    : "border-klerosUIComponentsStroke text-klerosUIComponentsPrimaryText hover:border-klerosUIComponentsPrimaryBlue",
-                  // "All" has no category colour of its own.
-                  isActive &&
-                    !color &&
-                    "bg-klerosUIComponentsPrimaryBlue text-white",
+                  "seer-button seer-button-ghost seer-button-sm border-seer-border border",
+                  active && "bg-seer-accent-soft",
                 )}
-                style={
-                  isActive
-                    ? {
-                        backgroundColor: color || undefined,
-                        color: color ? getReadableTextColor(color) : undefined,
-                      }
-                    : undefined
-                }
               >
-                {color ? (
-                  <span
-                    className="size-2.5 shrink-0 rounded-full"
-                    style={{
-                      backgroundColor: isActive ? "currentColor" : color,
-                    }}
-                  />
-                ) : null}
-                {label}
-                <span className="text-xs font-semibold opacity-70">
-                  {count}
-                </span>
+                <span
+                  className="size-2 rounded-full"
+                  style={{ backgroundColor: colorOf.get(asset.symbol) }}
+                  aria-hidden="true"
+                />
+                <span>{asset.symbol}</span>
               </button>
             );
           })}
-      </div>
-
-      {/* Shared asset legend */}
-      <div
-        className="mb-6 flex flex-wrap gap-2"
-        onMouseLeave={() => setHoveredSymbol(null)}
-      >
-        {assets.map((asset) => {
-          const active = !hiddenAssets.has(asset.symbol);
-          return (
-            <button
-              key={asset.symbol}
-              type="button"
-              aria-pressed={active}
-              onClick={() => toggleAsset(asset.symbol)}
-              onMouseEnter={() => setHoveredSymbol(asset.symbol)}
-              className={cn(
-                "cursor-pointer rounded-full border px-2 py-1 text-xs font-medium transition",
-                FOCUS_RING,
-                active
-                  ? "border-transparent"
-                  : "border-klerosUIComponentsStroke bg-klerosUIComponentsWhiteBackground text-klerosUIComponentsSecondaryText hover:border-klerosUIComponentsPrimaryBlue",
-              )}
-              // Category colours vary in lightness, so the label colour has to
-              // follow the chip rather than always being white.
-              style={
-                active
-                  ? {
-                      backgroundColor: colorOf.get(asset.symbol),
-                      color: getReadableTextColor(
-                        colorOf.get(asset.symbol) ?? "#000000",
-                      ),
-                    }
-                  : undefined
-              }
-            >
-              {asset.symbol}
-            </button>
-          );
-        })}
-
+        </div>
         <button
           type="button"
-          onClick={toggleAll}
-          className={cn(
-            "border-klerosUIComponentsStroke bg-klerosUIComponentsWhiteBackground text-klerosUIComponentsSecondaryText hover:border-klerosUIComponentsPrimaryBlue hover:text-klerosUIComponentsPrimaryBlue cursor-pointer rounded-full border px-2 py-1 text-xs font-medium transition",
-            FOCUS_RING,
-          )}
+          className="seer-button seer-button-ghost seer-button-sm mt-3"
+          onClick={() => setColorSlots([null, null, null, null])}
         >
-          {allHidden ? "Select all" : "Clear all"}
+          Clear highlights
         </button>
-      </div>
-
+      </details>
+      {view === "overTime" && (
+        <ul
+          aria-label="Highlighted asset estimates"
+          className="text-seer-text mb-4 flex flex-wrap gap-x-6 gap-y-2 text-sm"
+        >
+          {colorSlots.flatMap((symbol, slot) => {
+            const asset = visibleAssets.find(
+              (candidate) => candidate.symbol === symbol,
+            );
+            return asset
+              ? [
+                  <li key={symbol} className="flex items-center gap-2">
+                    <span
+                      className="size-2 rounded-full"
+                      style={{
+                        backgroundColor: `var(--seer-series-${slot + 1})`,
+                      }}
+                      aria-hidden="true"
+                    />
+                    <span className="font-semibold">{asset.symbol}</span>
+                    <span>
+                      {formatPd(asset.risk)}{" "}
+                      <span className="text-seer-muted text-xs">(Ann.)</span>
+                    </span>
+                  </li>,
+                ]
+              : [];
+          })}
+        </ul>
+      )}
       {view === "bars" ? (
-        <MarketEstimateRisk
-          assets={visibleAssets}
-          colorOf={colorOf}
-          noToAllProbability={noToAllProbability}
-          noToAllQuarterlyProbability={noToAllQuarterlyProbability}
-        />
-      ) : isChartEmpty || chartError ? (
-        <div className="text-klerosUIComponentsSecondaryText flex h-100 w-full items-center justify-center text-sm">
-          {chartError
+        <MarketEstimateRisk assets={visibleAssets} colorOf={colorOf} />
+      ) : isEmpty || error ? (
+        <p className="text-seer-muted flex min-h-60 items-center justify-center text-sm">
+          {error
             ? "Could not compute the probability history."
             : "Not enough price history yet to chart."}
-        </div>
-      ) : isChartLoading || !series ? (
-        <div className="flex h-100 w-full flex-col items-center justify-center gap-3">
+        </p>
+      ) : isLoading || !series ? (
+        <div className="flex min-h-60 flex-col items-center justify-center gap-3">
           <Loader />
-          <span className="text-klerosUIComponentsSecondaryText text-sm">
-            Solving implied probabilities… {Math.round(chartProgress * 100)}%
+          <span className="text-seer-muted text-sm">
+            Solving implied probabilities… {Math.round(progress * 100)}%
           </span>
         </div>
       ) : (
         <Chart series={visibleSeries} hoveredSymbol={hoveredSymbol} />
       )}
-    </div>
+    </section>
   );
-};
-
-export default MarketEstimate;
+}

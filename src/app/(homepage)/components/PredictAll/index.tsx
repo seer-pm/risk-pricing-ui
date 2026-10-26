@@ -1,4 +1,3 @@
-import { Button, Card, Tooltip } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { useToggle } from "react-use";
 
@@ -6,6 +5,7 @@ import { usePredictionMarkets } from "@/hooks/usePredictionMarkets";
 
 import EnsureChain from "@/components/EnsureChain";
 import AdvancedGuide from "@/components/Guides/AdvancedGuide";
+import { Button, Card, Tooltip } from "@/components/ui";
 
 import CheckOutline from "@/assets/svg/check-outline-button.svg";
 

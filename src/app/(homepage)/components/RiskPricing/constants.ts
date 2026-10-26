@@ -9,36 +9,31 @@ type AssetCategory = {
   color: string;
 };
 
-/**
- * Assets are grouped by what they are pegged to, and every member of a group
- * shares its colour - the list can grow to any length, so a colour identifies
- * the category rather than the individual asset. Order matters: the first
- * match wins, and "Funds Based" is the catch-all.
- */
+/** Categories have a stable order and use the four kit swatches in that order. */
 export const ASSET_CATEGORIES: AssetCategory[] = [
   {
     id: "eth",
     label: "ETH Based",
     match: (symbol) => /eth/i.test(symbol),
-    color: "#2563eb",
+    color: "var(--seer-series-1)",
   },
   {
     id: "usd",
     label: "USD Based",
     match: (symbol) => /usd/i.test(symbol),
-    color: "#16a34a",
+    color: "var(--seer-series-2)",
   },
   {
     id: "btc",
     label: "BTC Based",
     match: (symbol) => /btc/i.test(symbol),
-    color: "#ea580c",
+    color: "var(--seer-series-3)",
   },
   {
     id: "funds",
     label: "Funds Based",
     match: () => true,
-    color: "#9333ea",
+    color: "var(--seer-series-4)",
   },
 ];
 
@@ -46,9 +41,22 @@ export const getAssetCategory = (symbol: string): AssetCategory =>
   ASSET_CATEGORIES.find(({ match }) => match(symbol)) ??
   ASSET_CATEGORIES[ASSET_CATEGORIES.length - 1];
 
-/** symbol -> its category colour. */
-export const buildAssetColorMap = (symbols: string[]): Map<string, string> =>
-  new Map(symbols.map((symbol) => [symbol, getAssetCategory(symbol).color]));
+/** Slots belong to selected symbols. Removing one leaves every surviving slot unchanged. */
+export const buildAssetColorMap = (
+  symbols: string[],
+  slots: (string | null)[] = symbols.slice(0, 4),
+): Map<string, string> =>
+  new Map(
+    symbols.map((symbol) => {
+      const slot = slots.indexOf(symbol);
+      return [
+        symbol,
+        slot >= 0 && slot < 4
+          ? `var(--seer-series-${slot + 1})`
+          : "var(--seer-muted)",
+      ];
+    }),
+  );
 
 const CATEGORY_RANK = new Map<AssetCategoryId, number>(
   ASSET_CATEGORIES.map(({ id }, index) => [id, index]),
@@ -94,14 +102,9 @@ export const sortOutcomesByCategory = <T>(
  */
 export const PRIORITY_METRICS = ["Asset Quality", "Protocol Security"];
 
-/**
- * "No To All" is not an asset and its slider does not read as a PD - a high
- * value there is the good outcome. It gets the emerald of its summary card in
- * the market estimate, kept clear of every category colour.
- */
-export const NO_TO_ALL_COLOR = "#059669";
-/** Filled slider track for "No To All" (assets use a pale green). */
-export const NO_TO_ALL_TRACK_COLOR = "#A7F3D0";
+/** Survival and default are the two sides of the reading, separate from gain/loss status. */
+export const NO_TO_ALL_COLOR = "var(--seer-series-2)";
+export const NO_TO_ALL_TRACK_COLOR = "var(--seer-series-2)";
 
 export type Zone = {
   /** Base word only - RiskZoneBar appends " RISK" once the track has room. */
@@ -132,29 +135,29 @@ export const zones: Zone[] = [
     label: "LOW",
     from: 0,
     to: 2,
-    colors: ["#bbf7d0", "#dcfce7"],
-    accent: "#00C42B",
+    colors: ["var(--seer-surface-raised)", "var(--seer-accent-soft)"],
+    accent: "var(--seer-muted)",
   },
   {
     label: "MODERATE",
     from: 2,
     to: 5,
-    colors: ["#fef9c3", "#fed7aa"],
-    accent: "#FFD500",
+    colors: ["var(--seer-surface-raised)", "var(--seer-accent-soft)"],
+    accent: "var(--seer-muted)",
   },
   {
     label: "HIGH",
     from: 5,
     to: 10,
-    colors: ["#fbcfe8", "#f9a8d4"],
-    accent: "#FF8000",
+    colors: ["var(--seer-surface-raised)", "var(--seer-accent-soft)"],
+    accent: "var(--seer-muted)",
   },
   {
     label: "CRITICAL",
     from: 10,
     to: 100,
-    colors: ["#f9a8d4", "#fb7185"],
-    accent: "#F60C36",
+    colors: ["var(--seer-surface-raised)", "var(--seer-accent-soft)"],
+    accent: "var(--seer-muted)",
   },
 ];
 export const zoneAxis = zones

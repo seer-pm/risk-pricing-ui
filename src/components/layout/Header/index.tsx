@@ -14,7 +14,7 @@ const Header: React.FC = () => {
     <div
       className={clsx(
         "bg-klerosUIComponentsWhiteBackground",
-        "wrap sticky top-0 z-30 flex w-full px-6",
+        "border-seer-border sticky top-0 z-30 mx-auto flex w-full items-center border-b px-4 lg:px-8",
       )}
     >
       <DesktopNavbar {...{ toggleIsHelpOpen }} />

@@ -1,9 +1,9 @@
 import React from "react";
 
-import { BigNumberField, Tooltip } from "@kleros/ui-components-library";
 import { formatUnits } from "viem";
 
 import { Skeleton } from "@/components/Skeleton";
+import { BigNumberField, Tooltip } from "@/components/ui";
 
 import { formatValue, isUndefined, shortenName } from "@/utils";
 

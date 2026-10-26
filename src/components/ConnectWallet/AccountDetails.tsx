@@ -1,7 +1,8 @@
-import { Button, Copiable, Modal } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import Link from "next/link";
 import { useAccount, useDisconnect } from "wagmi";
+
+import { Button, Copiable, Modal } from "@/components/ui";
 
 import {
   AddressOrName,

@@ -1,4 +1,4 @@
-import { Card } from "@kleros/ui-components-library";
+import { Card } from "@/components/ui";
 
 import CsvUpload from "./CsvUpload";
 import { TradeWallet } from "./TradeWallet";

@@ -1,6 +1,5 @@
 import React, { FormEvent, useMemo, useState } from "react";
 
-import { Button, Form, Modal } from "@kleros/ui-components-library";
 import { Address } from "viem";
 import { useAccount, useBalance } from "wagmi";
 
@@ -9,6 +8,7 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 import AmountInput from "@/components/AmountInput";
 import LightButton from "@/components/LightButton";
+import { Button, Form, Modal } from "@/components/ui";
 
 import CloseIcon from "@/assets/svg/close-icon.svg";
 

@@ -1,4 +1,3 @@
-import { Button, Modal } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { useToggle } from "react-use";
 import { useAccount, useDisconnect } from "wagmi";
@@ -13,6 +12,7 @@ import EmailUpdates from "@/components/EmailUpdates";
 import LightButton from "@/components/LightButton";
 import QuickGuideButton from "@/components/QuickGuideButton";
 import ThemeToggle from "@/components/ThemeToggle";
+import { Button, Modal } from "@/components/ui";
 
 import HelpIcon from "@/assets/menu-icons/help.svg";
 import HamburgerIcon from "@/assets/svg/hamburger.svg";
@@ -30,14 +30,17 @@ const MobileNavbar: React.FC<IMobileNavbar> = ({ toggleIsHelpOpen }) => {
 
   return (
     <>
-      <div className="relative flex h-16 w-full items-center justify-between md:!hidden">
+      <div className="relative flex h-16 w-full items-center justify-between lg:!hidden">
         <Logo />
-        <LightButton
-          ariaLabel="Open menu"
-          text=""
-          icon={<HamburgerIcon />}
-          onPress={toggleIsMenuOpen}
-        />
+        <div className="ml-auto flex items-center gap-1">
+          <ThemeToggle />
+          <LightButton
+            ariaLabel="Open menu"
+            text=""
+            icon={<HamburgerIcon />}
+            onPress={toggleIsMenuOpen}
+          />
+        </div>
       </div>
       <Modal
         className={clsx(

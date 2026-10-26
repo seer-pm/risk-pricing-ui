@@ -1,7 +1,7 @@
-import { Card } from "@kleros/ui-components-library";
 import clsx from "clsx";
 
 import { Skeleton } from "@/components/Skeleton";
+import { Card } from "@/components/ui";
 
 const TradeWalletSkeleton: React.FC = () => {
   return (

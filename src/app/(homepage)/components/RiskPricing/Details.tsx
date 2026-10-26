@@ -72,7 +72,7 @@ export default function RiskPanel({
           href="https://app.credora.network"
           target="_blank"
           rel="noreferrer noopener"
-          aria-label="Credora — data provider"
+          aria-label="Credora: data provider"
           className="text-klerosUIComponentsPrimaryText transition-opacity hover:opacity-80"
         >
           <CredoraLogo aria-hidden className="h-8 w-auto" />

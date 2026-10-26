@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 
-import { BigNumberField, DropdownSelect } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { parseUnits, formatUnits } from "viem";
+
+import { BigNumberField, DropdownSelect } from "@/components/ui";
 
 import { cn, formatValue, isUndefined } from "@/utils";
 
@@ -84,12 +85,12 @@ const AmountInput: React.FC<IAmountInput> = ({
   }, [isWithdraw]);
 
   return (
-    <div className={cn("relative mb-8 w-full md:min-w-lg", className)}>
-      <div className="border-klerosUIComponentsStroke rounded-base flex h-fit flex-row border">
+    <div className={cn("relative mb-8 w-full md:min-w-0", className)}>
+      <div className="border-klerosUIComponentsStroke seer-input-group flex h-fit flex-row border">
         <BigNumberField
           isRequired
           className={clsx(
-            "inline-block flex-1 max-md:w-max",
+            "inline-block min-w-0 flex-1",
             "[&_input]:rounded-r-none [&_input]:border-none [&_input]:focus:shadow-none",
           )}
           onChange={(e) => {

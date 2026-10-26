@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
 import { useTheme } from "next-themes";
 
 import {
   createChart,
   type ISeriesApi,
+  type LineWidth,
   LineSeries,
   LineStyle,
   PriceScaleMode,
@@ -23,49 +24,39 @@ interface IChart {
   hoveredSymbol?: string | null;
 }
 
-// lightweight-charts needs concrete colour strings rather than classes, so the
-// two tokens it consumes are mirrored here. These are the SecondaryText and
-// Stroke values from the Kleros theme - keep them in step with it.
-const CHART_COLORS = {
-  light: { accent: "#999999", grid: "#e5e5e5" },
-  dark: { accent: "#becce5", grid: "#392c74" },
-} as const;
+const cssColor = (value: string) => {
+  const token = /^var\((--[\w-]+)\)$/.exec(value)?.[1];
+  return token
+    ? getComputedStyle(document.documentElement).getPropertyValue(token).trim()
+    : value;
+};
 
+/** Canvas consumes resolved CSS colors and is rebuilt when the active theme changes. */
 const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
-  // resolvedTheme, not theme: the provider defaults to "system", so `theme`
-  // is "system" (not "light"/"dark") until the user picks one explicitly.
   const { resolvedTheme } = useTheme();
-
-  const { accentColor, gridLinesColor } = useMemo(() => {
-    const c = CHART_COLORS[resolvedTheme === "dark" ? "dark" : "light"];
-    return { accentColor: c.accent, gridLinesColor: c.grid };
-  }, [resolvedTheme]);
-
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const seriesRefMap = useRef<Record<string, ISeriesApi<"Line">>>({});
   const seriesColorsRef = useRef<Record<string, string>>({});
   const seriesOrderRef = useRef<Record<string, number>>({});
+  const seriesWidthsRef = useRef<Record<string, LineWidth>>({});
 
-  const applyHighlight = React.useCallback(
-    (symbol: string | null) => {
-      const map = seriesRefMap.current;
-      const colors = seriesColorsRef.current;
-      const orders = seriesOrderRef.current;
-      const strokeColor = gridLinesColor;
-      const isResetting = symbol === null;
-      Object.entries(map).forEach(([name, s]) => {
-        const isHovered = name === symbol;
-        s.applyOptions({
-          lineWidth: isHovered ? 4 : 2,
-          color:
-            (isResetting || isHovered ? colors[name] : strokeColor) ??
-            strokeColor,
-        });
-        s.setSeriesOrder(isHovered ? 999 : (orders[name] ?? 0));
+  const applyHighlight = React.useCallback((symbol: string | null) => {
+    const map = seriesRefMap.current;
+    const colors = seriesColorsRef.current;
+    const orders = seriesOrderRef.current;
+    const strokeColor = cssColor("var(--seer-muted)");
+    const isResetting = symbol === null;
+    Object.entries(map).forEach(([name, s]) => {
+      const isHovered = name === symbol;
+      s.applyOptions({
+        lineWidth: isHovered ? 3 : (seriesWidthsRef.current[name] ?? 1),
+        color:
+          (isResetting || isHovered ? colors[name] : strokeColor) ??
+          strokeColor,
       });
-    },
-    [gridLinesColor],
-  );
+      s.setSeriesOrder(isHovered ? 999 : (orders[name] ?? 0));
+    });
+  }, []);
 
   // Hover lives in the shared legend, so the highlight is driven by prop.
   // Mirrored into a ref as well: the chart is torn down and rebuilt whenever the
@@ -80,18 +71,23 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
   }, [hoveredSymbol, applyHighlight]);
 
   useEffect(() => {
-    if (!chartContainerRef.current) return;
+    if (!chartContainerRef.current || !resolvedTheme) return;
 
     const handleResize = () => {
       chart.applyOptions({ width: chartContainerRef?.current?.clientWidth });
     };
 
+    const accentColor = cssColor("var(--seer-muted)");
+    const gridLinesColor = cssColor("var(--seer-border)");
     const chart = createChart(chartContainerRef?.current, {
       layout: {
         background: {
           color: "transparent",
         },
         textColor: accentColor,
+        fontFamily: getComputedStyle(document.documentElement)
+          .getPropertyValue("--seer-font-sans")
+          .trim(),
       },
       width: chartContainerRef?.current?.clientWidth,
       height: 400,
@@ -132,18 +128,29 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
     seriesColorsRef.current = {};
     seriesOrderRef.current = {};
     let orderIndex = 0;
-    series.forEach((s) => {
-      if (s.data.length === 0) return;
-      const lineSeries = chart.addSeries(LineSeries, {
-        color: s.color,
-        lineWidth: 2,
-        title: shortenName(s.symbol),
+    [...series]
+      .sort(
+        (a, b) =>
+          Number(a.color !== "var(--seer-muted)") -
+          Number(b.color !== "var(--seer-muted)"),
+      )
+      .forEach((s) => {
+        if (s.data.length === 0) return;
+        const isContext = s.color === "var(--seer-muted)";
+        const lineSeries = chart.addSeries(LineSeries, {
+          color: cssColor(s.color),
+          lineWidth: isContext ? 1 : 2,
+          lastValueVisible: false,
+          priceLineVisible: false,
+          crosshairMarkerVisible: !isContext,
+          title: shortenName(s.symbol),
+        });
+        lineSeries.setData(s.data);
+        seriesRefMap.current[s.symbol] = lineSeries;
+        seriesColorsRef.current[s.symbol] = cssColor(s.color);
+        seriesOrderRef.current[s.symbol] = orderIndex++;
+        seriesWidthsRef.current[s.symbol] = isContext ? 1 : 2;
       });
-      lineSeries.setData(s.data);
-      seriesRefMap.current[s.symbol] = lineSeries;
-      seriesColorsRef.current[s.symbol] = s.color;
-      seriesOrderRef.current[s.symbol] = orderIndex++;
-    });
 
     // Must run after the series are added - fitting an empty chart is a no-op.
     chart.timeScale().fitContent();
@@ -158,9 +165,10 @@ const Chart: React.FC<IChart> = ({ series, hoveredSymbol = null }) => {
       seriesRefMap.current = {};
       seriesColorsRef.current = {};
       seriesOrderRef.current = {};
+      seriesWidthsRef.current = {};
       chart.remove();
     };
-  }, [series, accentColor, gridLinesColor, applyHighlight]);
+  }, [series, resolvedTheme, applyHighlight]);
 
   return (
     // min-h matches the chart's own height, so the container doesn't collapse

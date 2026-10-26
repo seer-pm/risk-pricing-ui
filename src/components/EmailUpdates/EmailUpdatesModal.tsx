@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from "react";
 
-import { Button, Modal, TextField } from "@kleros/ui-components-library";
 import { useQueryClient } from "@tanstack/react-query";
 import clsx from "clsx";
 
@@ -14,6 +13,7 @@ import {
 
 import ConnectWallet from "@/components/ConnectWallet";
 import LightButton from "@/components/LightButton";
+import { Button, Modal, TextField } from "@/components/ui";
 
 import CloseIcon from "@/assets/svg/close-icon.svg";
 
@@ -140,7 +140,7 @@ const EmailUpdatesModal: React.FC<IEmailUpdatesModal> = ({
           <div className="flex flex-col items-start gap-4">
             <p className="text-klerosUIComponentsSecondaryText text-sm">
               Sign a message with your wallet to manage email notifications.
-              It&apos;s free — no transaction is sent.
+              It&apos;s free: no transaction is sent.
             </p>
             <Button
               text="Sign in"
@@ -167,8 +167,8 @@ const EmailUpdatesModal: React.FC<IEmailUpdatesModal> = ({
             <p className="text-klerosUIComponentsSecondaryText text-sm">
               {currentEmail
                 ? user?.email_verified
-                  ? "Your email is already verified on Seer — just hit Subscribe to follow this market. No new verification needed."
-                  : "Your saved Seer email is prefilled below, but it hasn't been verified yet — we'll send you a new verification link when you subscribe."
+                  ? "Your email is already verified on Seer: just hit Subscribe to follow this market. No new verification needed."
+                  : "Your saved Seer email is prefilled below, but it hasn't been verified yet: we'll send you a new verification link when you subscribe."
                 : "Enter your email to get notified when this market receives a new answer or is resolved."}
             </p>
             {emailForm}
@@ -184,7 +184,7 @@ const EmailUpdatesModal: React.FC<IEmailUpdatesModal> = ({
                 {user?.email}
               </span>{" "}
               hasn&apos;t been verified yet. A verification link was sent to
-              your inbox — the confirmation page opens on Seer (app.seer.pm).
+              your inbox: the confirmation page opens on Seer (app.seer.pm).
               You&apos;ll start receiving notifications once verified. No email
               in sight? Use Resend.
             </p>

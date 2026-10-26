@@ -2,27 +2,24 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Slider } from "@kleros/ui-components-library";
 import clsx from "clsx";
 
 import { RiskPricingOutcome } from "@/hooks/useMarketData";
 
 import { Skeleton } from "@/components/Skeleton";
+import { Slider } from "@/components/ui";
 import WithHelpTooltip from "@/components/WithHelpTooltip";
 
 import { formatPd, SLIDER_PD_DECIMALS } from "@/utils";
-import { getReadableTextColor } from "@/utils/getReadableTextColor";
 
 import {
   logScalePercent,
   logScaleToValue,
   MARKET_PD_TOOLTIP,
   MAX_RISK,
-  zones,
 } from "./constants";
 import RiskZoneBar from "./RiskZoneBar";
 import { usePredictionDrag } from "./usePredictionDrag";
-import { interpolateColor } from "./utils";
 
 const LoadingSkeleton: React.FC = () => (
   <div className="relative w-full">
@@ -88,25 +85,11 @@ const PredictionSlider = ({ outcome }: { outcome: RiskPricingOutcome }) => {
   // Market-probability derived values (do not change during dragging).
   const marketPercent = outcome.probability * 100;
 
-  const zone = useMemo(
-    () =>
-      zones.find((z) => marketPercent >= z.from && marketPercent <= z.to) ??
-      zones[0],
-    [marketPercent],
-  );
-
-  const color = useMemo(
-    () =>
-      interpolateColor(
-        zone.colors[0],
-        zone.colors[1],
-        (marketPercent - zone.from) / (zone.to - zone.from),
-      ),
-    [marketPercent, zone],
-  );
-
   const theme = useMemo(
-    () => ({ sliderColor: "#D2FFDC", thumbColor: "#D2FFDC" }),
+    () => ({
+      sliderColor: "var(--seer-series-1)",
+      thumbColor: "var(--seer-series-1)",
+    }),
     [],
   );
 
@@ -129,7 +112,7 @@ const PredictionSlider = ({ outcome }: { outcome: RiskPricingOutcome }) => {
     // its value while giving the centred "Market PD (Ann.)" label room to stay
     // inside the accordion body, which is overflow-hidden for its animation.
     <div className="w-full px-4 md:px-10">
-      {/* Positioning context for the marker only — the ZoneBar and Axis stay
+      {/* Positioning context for the marker only: the ZoneBar and Axis stay
           outside it so the marker's `bottom-0` means "bottom of the track box"
           rather than "bottom of the whole column". */}
       <div className="relative w-full">
@@ -140,7 +123,7 @@ const PredictionSlider = ({ outcome }: { outcome: RiskPricingOutcome }) => {
             "[&_#slider-label]:!text-klerosUIComponentsPrimaryText",
             "[&_#slider-label]:font-semibold",
 
-            // Thumb — reads against the track in both themes.
+            // Thumb: reads against the track in both themes.
             "[&_[role=slider]]:border-4",
             "[&_[role=slider]]:border-klerosUIComponentsWhiteBackground",
             "[&_[role=slider]]:bg-klerosUIComponentsWhiteBackground",
@@ -163,7 +146,7 @@ const PredictionSlider = ({ outcome }: { outcome: RiskPricingOutcome }) => {
         {/* Market-probability marker (does not move while dragging).
 
             At rest it sits just above the track with its stem crossing it, and
-            it covers the Slider's own bold value label — the thumb starts on
+            it covers the Slider's own bold value label: the thumb starts on
             the market value, so there is nothing to read there anyway. Once the
             user drags and the prediction comes within
             NEAR_MARKET_THRESHOLD_PERCENT of the market, the whole group slips
@@ -196,8 +179,8 @@ const PredictionSlider = ({ outcome }: { outcome: RiskPricingOutcome }) => {
           <div
             className={clsx("rounded-base px-2 py-0.75 text-center text-xs")}
             style={{
-              backgroundColor: color,
-              color: getReadableTextColor(color),
+              backgroundColor: "var(--seer-accent-soft)",
+              color: "var(--seer-text)",
             }}
           >
             {formatPd(marketPercent, SLIDER_PD_DECIMALS)}

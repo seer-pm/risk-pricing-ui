@@ -1,23 +1,13 @@
-import { Tooltip } from "@kleros/ui-components-library";
-import clsx from "clsx";
-import Image from "next/image";
-
-import { useAssetColorMap } from "@/hooks/useAssetColorMap";
 import { useRawMarketData } from "@/hooks/useMarketData";
 import { useRiskMarketResolution } from "@/hooks/useRiskMarketResolution";
 
-import SeerLogo from "@/components/SeerLogo";
+import { formatPd, shortenAddress } from "@/utils";
 
-import HelpIcon from "@/assets/menu-icons/help.svg";
-import SeerHeaderBackground from "@/assets/png/seer-header-bg.png";
-import ChartBar from "@/assets/svg/chart-bar.svg";
-
-import { cn, formatPd } from "@/utils";
-import { getReadableTextColor } from "@/utils/getReadableTextColor";
-
-import { endTime, marketMetadata } from "@/consts/markets";
-
-import Countdown from "./Countdown";
+import {
+  endTime,
+  marketMetadata,
+  RISK_PRICING_MARKET_ID,
+} from "@/consts/markets";
 
 const defaultDefinition = (
   <>
@@ -35,132 +25,133 @@ const defaultDefinition = (
     </span>{" "}
     Defaults caused by events prior to Q3 do not count.
   </>
-) as unknown as string;
+);
 
-const Header: React.FC = () => {
+export default function Header() {
   const { data } = useRawMarketData();
-  const colorOf = useAssetColorMap();
-  const {
-    isResolved,
-    payoutFractions,
-    isLoading: isLoadingResolution,
-  } = useRiskMarketResolution();
-
-  const winningOutcomes =
+  const market = data?.marketData;
+  const { isResolved, payoutFractions } = useRiskMarketResolution();
+  const winners =
     isResolved && payoutFractions
-      ? (data?.marketData?.outcomes ?? [])
-          .map((outcome, index) => ({
-            outcome,
-            index,
-            payoutFraction: payoutFractions[index] ?? 0,
-          }))
-          .filter(({ payoutFraction }) => payoutFraction > 0)
+      ? (market?.outcomes ?? []).filter(
+          (_, index) => (payoutFractions[index] ?? 0) > 0,
+        )
       : [];
+  const arbitrator = market?.questions[0]?.arbitrator;
+  const seerUrl = `https://app.seer.pm/markets/100/${RISK_PRICING_MARKET_ID}`;
 
   return (
-    <div className="flex flex-col items-start gap-4">
-      <h1 className="text-klerosUIComponentsPrimaryText text-3xl font-semibold">
-        {marketMetadata.name}
+    <section
+      className="space-y-4 sm:space-y-6"
+      aria-labelledby="market-question"
+    >
+      <h1
+        id="market-question"
+        className="text-seer-text max-w-4xl text-3xl leading-tight font-semibold tracking-tight sm:text-4xl"
+      >
+        {marketMetadata.question}
       </h1>
-      <div className="flex flex-wrap gap-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <ChartBar className="size-3.5" />
-          <span className="text-klerosUIComponentsSecondaryText text-sm">
-            Trading Period:
-          </span>
-          <span className="text-klerosUIComponentsPrimaryText text-sm font-semibold">
+      <div className="text-seer-muted flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+        <span>
+          Trading Period:{" "}
+          <time
+            className="text-seer-text"
+            dateTime={new Date(endTime * 1000).toISOString()}
+          >
             Until{" "}
             {new Date(endTime * 1000).toLocaleString("en-GB", {
               timeZone: "UTC",
-              weekday: "long",
               day: "numeric",
               month: "long",
               year: "numeric",
               hour: "2-digit",
               minute: "2-digit",
-            }) + " UTC"}
-          </span>
-        </div>
-        <Countdown />
+            })}{" "}
+            UTC
+          </time>
+        </span>
+        <span className="rounded-control border-seer-border bg-seer-surface-raised text-seer-text border px-2 py-1 font-semibold">
+          {Date.now() / 1000 >= endTime ? "Trading ended" : "Trading open"}
+        </span>
+        <span>Gnosis · sDAI</span>
       </div>
-
-      <div
-        className={clsx(
-          "relative mt-8 box-border w-full overflow-hidden rounded-xl",
-          "border-gradient-purple-blue",
-          "flex flex-col gap-2",
-        )}
-      >
-        <Image
-          src={SeerHeaderBackground}
-          alt=""
-          aria-hidden="true"
-          priority
-          className="absolute -z-2 size-full object-cover max-md:opacity-35"
-        />
-        <div className="flex size-full flex-wrap items-center gap-6 px-6 pt-3.75">
-          <SeerLogo />
-          {/* Not a <p>: the Tooltip below renders a <div> wrapper, and a div
-              inside a p is a parse error that fails hydration and forces the
-              whole root to client-render. */}
-          <div className="text-klerosUIComponentsPrimaryText text-base">
-            What is the yearly Probability of{" "}
-            <Tooltip
-              text={defaultDefinition}
-              place="bottom"
-              wrapperProps={{ className: "inline-flex items-center" }}
-              className="max-w-94 [&>small]:text-sm"
-            >
-              <span className="cursor-help border-b border-dotted border-current">
-                Default (PD)
-              </span>
-              <HelpIcon className="ml-1 inline-block size-3.5" />
-            </Tooltip>{" "}
-            for the following DeFi assets during Q3 2026?
-          </div>
-        </div>
-        <p className="text-klerosUIComponentsSecondaryText px-6 pb-3.75 text-xs whitespace-pre-line">
-          What is the probability? Estimate the risk level of the following
-          protocols.
+      <div className="grid gap-3 text-sm sm:grid-cols-2">
+        <p className="text-seer-text">
+          <span className="text-seer-muted">Asked by </span>
+          Risk Pricing UI team · Seer
+        </p>
+        <p className="text-seer-text">
+          <span className="text-seer-muted">Resolved by </span>
+          Reality.eth · <span className="text-seer-muted">Disputes: </span>
+          Kleros
         </p>
       </div>
-      {!isLoadingResolution && winningOutcomes.length > 0 ? (
-        <div className="border-b-klerosUIComponentsStroke w-full space-y-2 border-b pb-8">
-          <h2 className="text-klerosUIComponentsPrimaryText text-base font-semibold">
-            Market resolved:
-          </h2>
-          <div className="flex flex-row flex-wrap items-center gap-2">
-            {winningOutcomes.map(({ outcome, index, payoutFraction }) => {
-              const color = colorOf(outcome);
-              return (
-                <div
-                  className={cn(
-                    "rounded-base h-fit px-1 py-0.5",
-                    "flex flex-row gap-2",
-                  )}
-                  key={index}
-                  style={{ backgroundColor: color }}
+      <div className="border-seer-border flex flex-wrap gap-x-8 gap-y-3 border-y py-4 text-sm">
+        <details className="text-seer-muted basis-full">
+          <summary className="text-seer-text w-fit cursor-pointer font-semibold">
+            Market rules and contracts
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-x-6 gap-y-3">
+            {" "}
+            {market?.creator && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-seer-muted">Market creator</span>
+                <a
+                  className="text-seer-accent-text font-mono underline underline-offset-4"
+                  href={`https://gnosisscan.io/address/${market.creator}`}
+                  target="_blank"
+                  rel="noreferrer"
                 >
-                  <p
-                    className="text-xs"
-                    style={{ color: getReadableTextColor(color) }}
-                  >
-                    {outcome}
-                    <span
-                      className="mx-1 text-xs"
-                      style={{ color: getReadableTextColor(color) }}
-                    >
-                      |
-                    </span>
-                    {formatPd(payoutFraction * 100)}
-                  </p>
-                </div>
-              );
-            })}
+                  {shortenAddress(market.creator as `0x${string}`)}
+                </a>
+              </div>
+            )}
+            {arbitrator && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-seer-muted">Arbitrator</span>
+                <a
+                  className="text-seer-accent-text font-mono underline underline-offset-4"
+                  href={`https://gnosisscan.io/address/${arbitrator}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {shortenAddress(arbitrator)}
+                </a>
+              </div>
+            )}
+            <a
+              className="text-seer-accent-text font-semibold underline underline-offset-4"
+              href={seerUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Market rules on Seer
+            </a>
           </div>
+        </details>
+        <details className="text-seer-muted basis-full">
+          <summary className="text-seer-text w-fit cursor-pointer font-semibold">
+            What counts as a default?
+          </summary>
+          <div className="mt-3 max-w-3xl text-sm leading-relaxed">
+            {defaultDefinition}
+          </div>
+        </details>
+      </div>
+      {winners.length > 0 && (
+        <div className="text-seer-text text-sm">
+          <h2 className="font-semibold">Market resolved:</h2>
+          {winners.map((outcome) => (
+            <p key={outcome}>
+              {outcome}:{" "}
+              {formatPd(
+                (payoutFractions?.[market!.outcomes.indexOf(outcome)] ?? 0) *
+                  100,
+              )}
+            </p>
+          ))}
         </div>
-      ) : null}
-    </div>
+      )}
+    </section>
   );
-};
-export default Header;
+}

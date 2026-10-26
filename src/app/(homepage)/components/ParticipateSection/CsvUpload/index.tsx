@@ -1,12 +1,13 @@
 import React, { useCallback, useState } from "react";
 
-import { Button, FileUploader, Modal } from "@kleros/ui-components-library";
 import clsx from "clsx";
 import { useToggle } from "react-use";
 
 import { useRiskPredictionStore } from "@/store/riskMarketStore";
 
 import { isTwoStringsEqual } from "@/hooks/liquidity/utils";
+
+import { Button, FileUploader, Modal } from "@/components/ui";
 
 import { isUndefined } from "@/utils";
 import { parseRiskCSV } from "@/utils/csv";

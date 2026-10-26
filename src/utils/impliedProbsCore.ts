@@ -138,7 +138,7 @@ export function computePrices(p: number[]) {
 //   3. Line search (backtracking Armijo) on each Newton step to guarantee the
 //      residual decreases even when the Jacobian is poorly conditioned.
 //   4. Gaussian elimination (with partial pivoting) to solve J·Δp = F exactly
-//      at each step — no iterative linear solver needed at n≤~50.
+//      at each step: no iterative linear solver needed at n≤~50.
 
 export const WORKER_SRC = `
 // ── same core math duplicated in the worker ──────────────────────────────────
@@ -341,8 +341,8 @@ function newtonSolve(p, targetPrices, maxIter, tol, emit) {
 
 // Chord (Shamanskii) Newton: identical to newtonSolve but reuses a Jacobian
 // captured at an earlier point instead of rebuilding it each iteration.
-// Valid when p is already close to the root — an O(n^3) iteration instead of
-// O(n^4) — which is exactly the case when warm-starting from the previous
+// Valid when p is already close to the root: an O(n^3) iteration instead of
+// O(n^4): which is exactly the case when warm-starting from the previous
 // timestamp on a 4h grid, where prices move only basis points.
 
 function chordSolve(p, targetPrices, J, maxIter, tol) {
@@ -422,7 +422,7 @@ function coldSolve(targetPrices, adamIters, adamLr, newtonIters, tol, emit) {
 
 function runSingle(data) {
   // NOTE: targetY is accepted for API symmetry but is not part of the solved
-  // system — only the n YES-token prices are. priceY is implied once the p_i
+  // system: only the n YES-token prices are. priceY is implied once the p_i
   // are fixed, and is returned below rather than constrained.
   const {
     targetPrices,

@@ -1,22 +1,34 @@
 @import "tailwindcss";
+@import "@seer-pm/ui-kit/fonts.css";
+@import "@seer-pm/ui-kit/tokens.css";
+@import "@seer-pm/ui-kit/tailwind.css";
+@import "@seer-pm/ui-kit/base.css" layer(base);
+@import "@seer-pm/ui-kit/components.css" layer(components);
 @import "../../node_modules/@kleros/ui-components-library/dist/assets/theme.css";
 @source "../../node_modules/@kleros/ui-components-library";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme inline {
+  --font-sans: var(--seer-font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-background: var(--seer-page);
+  --color-foreground: var(--seer-text);
+  --color-red-2: var(--seer-negative);
+  --color-green-2: var(--seer-positive);
+  --color-whiteLowOpacityStrong: var(--seer-surface-raised);
+  --radius-base: var(--seer-radius-md);
+  --radius-sm: var(--seer-radius-sm);
+  --radius-md: var(--seer-radius-md);
+  --radius-lg: var(--seer-radius-md);
+  --radius-xl: var(--seer-radius-md);
+  --radius-2xl: var(--seer-radius-md);
+  --radius-3xl: var(--seer-radius-md);
+  --shadow-default: 0 0 #0000;
+  --shadow-input: 0 0 #0000;
+}
+
 @theme {
-  /* next/font/local exposes Geist as --font-geist-* on <body> (see layout.tsx);
-     these bind it to Tailwind's font utilities and to Preflight's default. */
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-red-2: var(--red-2);
-  --color-green-2: var(--green-2);
-  --color-footer-background: #1d6aaa;
-  --color-whiteLowOpacityStrong: #ffffff26;
-
   @keyframes slideInLeft {
     0% {
       transform: translateX(100%);
@@ -78,69 +90,75 @@
   --animate-spinner: spinner 2s ease-in-out infinite normal;
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
+/* Kleros interaction components inherit Seer values in both themes. New UI uses seer-* directly. */
 @layer base {
+  :root,
+  :root.dark {
+    --background: var(--seer-page);
+    --foreground: var(--seer-text);
+    --red-2: var(--seer-negative);
+    --green-2: var(--seer-positive);
+    --klerosUIComponentsPrimaryPurple: var(--seer-brand-purple);
+    --klerosUIComponentsSecondaryPurple: var(--seer-accent-text);
+    --klerosUIComponentsPrimaryBlue: var(--seer-accent-text);
+    --klerosUIComponentsSecondaryBlue: var(--seer-brand-purple-hover);
+    --klerosUIComponentsMediumPurple: var(--seer-accent-soft);
+    --klerosUIComponentsLightPurple: var(--seer-surface);
+    --klerosUIComponentsMediumBlue: var(--seer-accent-soft);
+    --klerosUIComponentsLightBlue: var(--seer-surface);
+    --klerosUIComponentsPrimaryText: var(--seer-text);
+    --klerosUIComponentsSecondaryText: var(--seer-muted);
+    --klerosUIComponentsStroke: var(--seer-border);
+    --klerosUIComponentsLightGrey: var(--seer-surface-raised);
+    --klerosUIComponentsWhiteBackground: var(--seer-surface);
+    --klerosUIComponentsLightBackground: var(--seer-page);
+    --klerosUIComponentsDefaultShadow: transparent;
+    --klerosUIComponentsHoveredShadow: transparent;
+    --klerosUIComponentsSuccess: var(--seer-positive);
+    --klerosUIComponentsError: var(--seer-negative);
+    --klerosUIComponentsWarning: var(--seer-warning);
+    --klerosUIComponentsSuccessLight: color-mix(
+      in srgb,
+      var(--seer-positive) 10%,
+      var(--seer-surface)
+    );
+    --klerosUIComponentsErrorLight: color-mix(
+      in srgb,
+      var(--seer-negative) 10%,
+      var(--seer-surface)
+    );
+    --klerosUIComponentsWarningLight: color-mix(
+      in srgb,
+      var(--seer-warning) 10%,
+      var(--seer-surface)
+    );
+    --klerosUIComponentsTint: var(--seer-accent-text);
+    --klerosUIComponentsTintMedium: var(--seer-accent-soft);
+    --klerosUIComponentsTintPurple: var(--seer-accent-soft);
+    --klerosUIComponentsBaseRadius: var(--seer-radius-md);
+    --klerosUIComponentsTransitionSpeed: var(--seer-duration-fast);
+  }
+
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--seer-border);
   }
-  :root {
-    --background: #ffffff;
-    --foreground: #171717;
-    --red-2: #f75c7b;
-    --green-2: #3fec65;
-  }
-
-  :root.dark {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --red-2: #ffd2db;
-    --green-2: #d2ffdc;
-  }
-
   body {
-    color: var(--foreground);
-    background: var(--background);
-    font-family: var(--font-sans);
-
-    /* ================================
-   Custom scrollbar styles
-   ================================ */
-
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--background);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--color-klerosUIComponentsSecondaryBlue);
-      border-radius: 999px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--color-klerosUIComponentsSecondaryBlue);
-    }
-
-    /* Firefox */
-    * {
-      scrollbar-width: thin;
-      scrollbar-color: var(--color-klerosUIComponentsSecondaryBlue)
-        var(--background);
-    }
+    font-variant-numeric: tabular-nums;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font-family: var(--seer-font-sans);
+  }
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--seer-muted);
+    opacity: 1;
   }
 }
 
@@ -150,30 +168,8 @@
 
 @layer utilities {
   .border-gradient-purple-blue {
-    position: relative;
-    border-radius: 12px;
-    z-index: 1;
-  }
-
-  .border-gradient-purple-blue::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border-radius: inherit;
-    padding: 1px;
-    background: linear-gradient(to right, #a865ff, #6cc5ff);
-    opacity: 50%;
-    -webkit-mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask:
-      linear-gradient(#000 0 0) content-box,
-      linear-gradient(#000 0 0);
-    mask-composite: exclude;
-    z-index: -1;
+    border: 1px solid var(--seer-border);
+    border-radius: var(--seer-radius-md);
   }
 
   .loader {
@@ -183,12 +179,12 @@
        the first thing a dark-mode user sees. */
     --g1: conic-gradient(
       from 90deg at left 3px top 3px,
-      #8b52f6 90deg,
+      var(--seer-brand-purple) 90deg,
       var(--background) 0
     );
     --g2: conic-gradient(
       from -90deg at bottom 3px right 3px,
-      #8b52f6 90deg,
+      var(--seer-brand-purple) 90deg,
       var(--background) 0
     );
     background:
@@ -232,5 +228,69 @@
 
   .hover-short-transition {
     transition: 0.1s;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  [aria-busy="true"]::before,
+  .animate-spin,
+  .loader {
+    animation-duration: 2.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+@layer components {
+  .risk-dialog {
+    border-radius: var(--seer-radius-md);
+    border-color: var(--seer-border);
+    background: var(--seer-surface);
+    color: var(--seer-text);
+    box-shadow: 0 24px 64px rgb(20 18 35 / 0.28);
+  }
+  .seer-field input,
+  .risk-number-field input {
+    border-radius: var(--seer-radius-md);
+    color: var(--seer-text);
+    background: var(--seer-surface);
+    font-family: var(--seer-font-sans);
+    box-shadow: none;
+  }
+  .seer-input-group input {
+    border: 0;
+    min-width: 0;
+    width: 100%;
+  }
+  .seer-button .button-text {
+    color: inherit;
+    font: inherit;
+  }
+  .seer-button svg {
+    flex-shrink: 0;
+  }
+}
+
+@layer components {
+  .risk-estimate-columns {
+    display: grid;
+    grid-template-columns: minmax(72px, 1.1fr) minmax(82px, 1fr) minmax(
+        90px,
+        1fr
+      );
+    align-items: center;
+    gap: 8px;
+  }
+  @media (min-width: 640px) {
+    .risk-estimate-columns {
+      grid-template-columns: minmax(90px, 1fr) 120px 120px minmax(0, 3fr);
+    }
   }
 }

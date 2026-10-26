@@ -16,23 +16,7 @@ import {
 
 type Size = "sm" | "lg";
 
-/**
- * The LOW/MODERATE/HIGH/CRITICAL RISK legend and its axis.
- *
- * This used to exist twice - once under the market-estimate bars and once under
- * each prediction slider - and the two copies had drifted apart on every
- * dimension (bar height, emoji size, label size, and whether they had dark
- * variants at all). Since a user sees both on the same screen, they live here
- * as one component with a size variant instead.
- *
- * It is a rule, not a filled band: a 96px block of pastel was the loudest thing
- * on a page whose actual content is the asset bars above it, and the emoji that
- * sat on it rendered differently on every OS and could not be themed.
- * Everything is positioned off {@link zoneMidpointPercent}, which also anchors
- * the gradient's stops, so icon, label and colour cannot drift.
- */
-// MODERATE and HIGH deliberately share a glyph - the design uses one
-// exclamation mark for both and separates them on colour alone.
+/** Ordered risk bands share the probability scale with the chart and sliders. */
 const ZONE_ICONS: Record<string, React.FC<React.SVGProps<SVGElement>>> = {
   LOW: RiskLow,
   MODERATE: RiskAlert,
@@ -89,12 +73,7 @@ const SIZES: Record<
   },
 };
 
-/**
- * Axis ticks and numbers, in both themes. Not a theme token: the design uses
- * one grey here light and dark, and it has to sit between the page background
- * and the secondary text that labels the chart above.
- */
-const AXIS_GREY = "#bbb";
+const AXIS_GREY = "var(--seer-muted)";
 
 interface IRiskZoneBar {
   size?: Size;
